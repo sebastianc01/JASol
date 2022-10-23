@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <iostream>
+#include "../Dll1/JAcpp.h"
 
 class Bmp {
 	size_t width;
@@ -12,4 +13,5 @@ class Bmp {
 public:
 	Bmp(std::string file, int noThreads);
 	void readFile(std::string file, int noThreads);
+	void filterCpp();
 };

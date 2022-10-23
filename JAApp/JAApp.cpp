@@ -19,6 +19,7 @@ int main(void)
     //laplaceFilter("asd.bmp", 200, 200);
     //readFile("asd");
     Bmp image("asd.bmp", 10);
+    image.filterCpp();
     if (hinstLib != NULL)
     {
         CIA = (CpuIdAsm)GetProcAddress(hinstLib, "CpuIdAsm");

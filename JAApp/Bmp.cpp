@@ -20,3 +20,7 @@ void Bmp::readFile(std::string file, int noThreads) {
 	data = new unsigned char[size];
 	fread(data, sizeof(unsigned char), size, f);
 }
+
+void Bmp::filterCpp() {
+	laplaceFilter(data, width, height, size, noThreads);
+}
