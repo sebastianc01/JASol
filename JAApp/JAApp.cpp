@@ -4,7 +4,7 @@
 #include <string.h>
 #include <intrin.h>
 #include "../Dll1/JAcpp.h"
-#include "../Dll1/BmpFile.h"
+#include "Bmp.h"
 
 typedef int(_stdcall* CpuIdAsm)();
 
@@ -16,9 +16,9 @@ int main(void)
     BOOL fFreeResult;
 
     hinstLib = LoadLibrary(TEXT("JADll.dll"));
-    laplaceFilter("asd.bmp", 200, 200);
+    //laplaceFilter("asd.bmp", 200, 200);
     //readFile("asd");
-    
+    Bmp image("asd.bmp", 10);
     if (hinstLib != NULL)
     {
         CIA = (CpuIdAsm)GetProcAddress(hinstLib, "CpuIdAsm");

@@ -141,7 +141,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Bmp.cpp" />
     <ClCompile Include="JAApp.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Bmp.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
