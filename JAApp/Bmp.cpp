@@ -22,5 +22,32 @@ void Bmp::readFile(std::string file, int noThreads) {
 }
 
 void Bmp::filterCpp() {
-	laplaceFilter(data, width, height, size, noThreads);
+	std::vector<std::thread> vecOfThreads;
+	unsigned char* modifiedData = new unsigned char[size];
+	for (int i = 0; i < noThreads; ++i) {
+		std::thread a(laplaceFilter, data, std::ref(modifiedData), width, height, size, i);
+		vecOfThreads.emplace_back(std::move(a));
+	}
+	for (int i = 0; i < noThreads; ++i) {
+		vecOfThreads.at(i).join();
+	}
+}
+
+void Bmp::filterAsm() {
+	std::vector<std::thread> vecOfThreads;
+	unsigned char* modifiedData = new unsigned char[size];
+	HINSTANCE hinstLib;
+	laplaceFilterAsm CIA;
+	BOOL fFreeResult;
+	hinstLib = LoadLibrary(TEXT("JADll.dll"));;
+	if (hinstLib != NULL)
+	{
+
+		CIA = (laplaceFilterAsm)GetProcAddress(hinstLib, "laplaceFilterAsm");
+		/*if (NULL != CIA)
+		{
+			
+		}*/
+		fFreeResult = FreeLibrary(hinstLib);
+	}
 }
