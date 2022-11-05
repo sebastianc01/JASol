@@ -3,7 +3,11 @@
 #include <iostream>
 #include <thread>
 #include <vector>
+#include <Windows.h>
 #include "../Dll1/JAcpp.h"
+#include "BmpHeader.h"
+
+#define BMP_File_Header 54
 
 typedef int(_stdcall* laplaceFilterAsm)();
 
@@ -14,8 +18,10 @@ class Bmp {
 	unsigned char* header;
 	unsigned char* data;
 	int noThreads;
+	BmpHeader *currentHeader;
 public:
 	Bmp(std::string file, int noThreads);
+	~Bmp();
 	void readFile(std::string file, int noThreads);
 	void filterCpp();
 	void filterAsm();

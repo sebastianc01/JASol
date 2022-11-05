@@ -5,6 +5,10 @@ Bmp::Bmp(std::string file, int noThreads) {
 	this->noThreads = noThreads;
 }
 
+Bmp::~Bmp() {
+	delete currentHeader;
+}
+
 void Bmp::readFile(std::string file, int noThreads) {
 	FILE* f;
 	fopen_s(&f, file.c_str(), "r");
@@ -14,9 +18,7 @@ void Bmp::readFile(std::string file, int noThreads) {
 	}
 	header = new unsigned char[55];
 	fread(header, sizeof(unsigned char), 54, f); //54 to wielkoœæ headera
-	width = *(int*)&header[18]; //http://www.ue.eti.pg.gda.pl/fpgalab/zadania.spartan3/zad_vga_struktura_pliku_bmp_en.html
-	height = *(int*)&header[22];
-	size = *(int*)&header[2] - 54; //wielkoœæ pliku bez headera
+	currentHeader = new BmpHeader(header);
 	data = new unsigned char[size];
 	fread(data, sizeof(unsigned char), size, f);
 }
