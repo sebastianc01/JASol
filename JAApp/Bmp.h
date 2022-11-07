@@ -4,12 +4,16 @@
 #include <thread>
 #include <vector>
 #include <Windows.h>
+#include <fstream>
+#include <algorithm>
+#include <iterator>
+
 #include "../Dll1/JAcpp.h"
 //#include "BmpHeader.h"
 
 #define BMP_File_Header 54
 
-typedef int(_stdcall* laplaceFilterAsm)();
+typedef void(_stdcall* laplaceFilterAsm)(size_t width, size_t height, const int noThreads, size_t position, unsigned char* data, unsigned char* (&modifiedData), const int* mask);
 
 class Bmp {
 	size_t width;

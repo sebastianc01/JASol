@@ -16,8 +16,8 @@ void Bmp::readFile(std::string file, int noThreads) {
 		std::cerr << "\nThe file cannot be opened.\n";
 		return;
 	}
-	header = new unsigned char[55];
-	fread(header, sizeof(unsigned char), 54, f); //54 to wielkoœæ headera
+	header = new unsigned char[BMP_File_Header];
+	fread(header, sizeof(unsigned char), BMP_File_Header, f); //54 to wielkoœæ headera
 	//currentHeader = new BmpHeader(header);
 	bmfh.bfType = *(int*)&header[0];
 	bmfh.bfSize = *(int*)&header[2];
@@ -35,51 +35,92 @@ void Bmp::readFile(std::string file, int noThreads) {
 	bmih.biYPelsPerMeter = *(int*)&header[42];
 	bmih.biClrUsed = *(int*)&header[46];
 	bmih.biClrImportant = *(int*)&header[50];
-	data = new unsigned char[size];
-	fread(data, sizeof(unsigned char), size, f);
+	data = new unsigned char[bmfh.bfSize - BMP_File_Header];
+	fread(data, sizeof(unsigned char), bmfh.bfSize - BMP_File_Header, f);
 }
 
 void Bmp::filterCpp() {
 	std::vector<std::thread> vecOfThreads;
 	int mask[] = {1, 1, 1, 1, -8, 1, 1, 1, 1};
-	unsigned char* modifiedData = new unsigned char[size];
+	unsigned char* modifiedData = new unsigned char[bmfh.bfSize - BMP_File_Header];
+	for (int i = 0; i < bmfh.bfSize - BMP_File_Header; ++i) {
+		modifiedData[i] = 0;
+	}
 	for (int i = 0; i < noThreads; ++i) {
-		std::thread a(laplaceFilter, data, std::ref(modifiedData), width, height, size, i, mask);
+		std::thread a(laplaceFilter, bmih.biWidth, bmih.biHeight, noThreads, i, data, std::ref(modifiedData), mask);
 		vecOfThreads.emplace_back(std::move(a));
 	}
 	for (int i = 0; i < noThreads; ++i) {
 		vecOfThreads.at(i).join();
 	}
+	/*for (int i = 0; i < bmih.biHeight; ++i) {
+		for (int k = 0; k < bmih.biWidth; ++k) {
+			std::cout << modifiedData[i * 9 + k * 3]<<"."<< modifiedData[i * 9 + k * 3 + 1] << "." << modifiedData[i * 9 + k * 3 + 2];
+		}
+		std::cout << std::endl;
+	}*/
 	saveImage(modifiedData, "modifd.bmp");
 }
 
 void Bmp::filterAsm() {
 	std::vector<std::thread> vecOfThreads;
-	unsigned char* modifiedData = new unsigned char[size];
+	unsigned char* modifiedData = new unsigned char[bmfh.bfSize - BMP_File_Header];
 	HINSTANCE hinstLib;
-	laplaceFilterAsm CIA;
+	int mask[] = { 1, 1, 1, 1, -8, 1, 1, 1, 1 };
 	BOOL fFreeResult;
-	hinstLib = LoadLibrary(TEXT("JADll.dll"));;
+	hinstLib = LoadLibrary(TEXT("JADll.dll"));
 	if (hinstLib != NULL)
 	{
-
-		CIA = (laplaceFilterAsm)GetProcAddress(hinstLib, "laplaceFilterAsm");
-		/*if (NULL != CIA)
+		laplaceFilterAsm CIA = (laplaceFilterAsm)GetProcAddress(hinstLib, "laplaceFilterAsm");
+		if (NULL != CIA)
 		{
-			
-		}*/
+
+			/*for (int i = 0; i < noThreads; ++i) {
+				std::thread a(laplaceFilterAsm, data, std::ref(modifiedData), bmih.biWidth, bmih.biHeight, noThreads, i, mask);
+				vecOfThreads.emplace_back(std::move(a));
+			}
+			for (int i = 0; i < noThreads; ++i) {
+				vecOfThreads.at(i).join();
+			}*/
+			CIA(bmih.biWidth, bmih.biHeight, noThreads, 10, data, modifiedData, mask);
+		}
 		fFreeResult = FreeLibrary(hinstLib);
 	}
 }
 
 void Bmp::saveImage(unsigned char* modifiedData, const char* destinationFile) {
-	FILE* file;
-	fopen_s(&file, destinationFile, "wb");
-	if (file) {
-		fwrite(&bmfh, 1, sizeof(BITMAPFILEHEADER), file);
-		fwrite(&bmih, 1, sizeof(BITMAPFILEHEADER), file);
+	std::ofstream file(destinationFile, std::ios_base::binary);
+	if (file.is_open()) {
+		/*fwrite(&bmfh, 1, sizeof(BITMAPFILEHEADER), file);
+		fwrite(&bmih, 1, sizeof(BITMAPINFOHEADER), file);
 		fwrite(&modifiedData, sizeof(unsigned char), sizeof(modifiedData), file);
-		fclose(file);
+		fclose(file);*/
+		file.write((const char*)&bmfh, sizeof(BITMAPFILEHEADER));
+		UINT nWrittenFileHeaderSize = file.tellp();
+
+		// And then the bitmap info header
+		file.write((const char*)&bmih, sizeof(BITMAPINFOHEADER));
+		UINT nWrittenInfoHeaderSize = file.tellp();
+
+		unsigned char colourTable[8] = {0};
+		colourTable[4] = 255;
+		colourTable[5] = 255;
+		colourTable[6] = 255;
+		file.write((char*)colourTable, 8);
+
+		// Finally, write the image data itself
+		//-- the data represents our drawing
+		//for(auto it = std::begin(modifiedData);)
+		char* row = new char[3 * bmih.biWidth];
+		for (int h = 0; h < bmih.biHeight; ++h) {
+			//std::copy(modifiedData[h * 9], modifiedData[h * 9 + 3 * bmih.biWidth], row);
+			std::memcpy(row, &modifiedData[h * 3 * bmih.biWidth], 3 * bmih.biWidth);
+			file.write(row, bmih.biWidth);
+		}
+		delete[] row;
+		//file.write(reinterpret_cast<char*>(modifiedData), sizeof(modifiedData));
+		//UINT nWrittenDIBDataSize = file.tellp();
+		file.close();
 	}
 	else {
 		std::cout << "Saving unsuccessful.";
