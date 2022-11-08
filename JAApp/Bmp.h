@@ -8,12 +8,11 @@
 #include <algorithm>
 #include <iterator>
 
-#include "../Dll1/JAcpp.h"
-//#include "BmpHeader.h"
 
 #define BMP_File_Header 54
 
-typedef void(_stdcall* laplaceFilterAsm)(size_t width, size_t height, const int noThreads, size_t position, unsigned char* data, unsigned char* (&modifiedData), const int* mask);
+typedef void(_stdcall* laplaceAsm)(int , int, const int, int, unsigned char*, unsigned char*, const int*);
+typedef void(*laplaceCpp)(int, int, const int, int, unsigned char*, unsigned char*, const int*);
 
 class Bmp {
 	size_t width;
@@ -22,14 +21,12 @@ class Bmp {
 	unsigned char* header;
 	unsigned char* data;
 	int noThreads;
-	//BmpHeader *currentHeader;
 	BITMAPINFOHEADER bmih;
 	BITMAPFILEHEADER bmfh;
 public:
 	Bmp(std::string file, int noThreads);
 	~Bmp();
 	void readFile(std::string file, int noThreads);
-	void filterCpp();
-	void filterAsm();
+	void filter(bool cpp);
 	void saveImage(unsigned char* modifiedData, const char* destinationFile);
 };

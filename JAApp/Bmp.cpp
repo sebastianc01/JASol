@@ -35,56 +35,83 @@ void Bmp::readFile(std::string file, int noThreads) {
 	bmih.biYPelsPerMeter = *(int*)&header[42];
 	bmih.biClrUsed = *(int*)&header[46];
 	bmih.biClrImportant = *(int*)&header[50];
+
 	data = new unsigned char[bmfh.bfSize - BMP_File_Header];
 	fread(data, sizeof(unsigned char), bmfh.bfSize - BMP_File_Header, f);
 }
 
-void Bmp::filterCpp() {
-	std::vector<std::thread> vecOfThreads;
-	int mask[] = {1, 1, 1, 1, -8, 1, 1, 1, 1};
-	unsigned char* modifiedData = new unsigned char[bmfh.bfSize - BMP_File_Header];
-	for (int i = 0; i < bmfh.bfSize - BMP_File_Header; ++i) {
-		modifiedData[i] = 0;
-	}
-	for (int i = 0; i < noThreads; ++i) {
-		std::thread a(laplaceFilter, bmih.biWidth, bmih.biHeight, noThreads, i, data, std::ref(modifiedData), mask);
-		vecOfThreads.emplace_back(std::move(a));
-	}
-	for (int i = 0; i < noThreads; ++i) {
-		vecOfThreads.at(i).join();
-	}
-	/*for (int i = 0; i < bmih.biHeight; ++i) {
-		for (int k = 0; k < bmih.biWidth; ++k) {
-			std::cout << modifiedData[i * 9 + k * 3]<<"."<< modifiedData[i * 9 + k * 3 + 1] << "." << modifiedData[i * 9 + k * 3 + 2];
-		}
-		std::cout << std::endl;
-	}*/
-	saveImage(modifiedData, "modifd.bmp");
-}
+//void Bmp::filterCpp() {
+//	std::vector<std::thread> vecOfThreads;
+//	int mask[] = {1, 1, 1, 1, -8, 1, 1, 1, 1};
+//	unsigned char* modifiedData = new unsigned char[bmfh.bfSize - BMP_File_Header];
+//	HINSTANCE hinstLib;
+//	BOOL fFreeResult;
+//	hinstLib = LoadLibrary(TEXT("Dll1.dll"));
+//	if (hinstLib != NULL)
+//	{
+//		laplaceFilter f = (laplaceFilter)GetProcAddress(hinstLib, "laplaceFilter");
+//		if (NULL != f)
+//		{
+//			f(bmih.biWidth, bmih.biHeight, noThreads, 10, data, modifiedData, mask);
+//		}
+//		fFreeResult = FreeLibrary(hinstLib);
+//	}
+//	for (int i = 0; i < bmfh.bfSize - BMP_File_Header; ++i) {
+//		modifiedData[i] = 0;
+//	}
+//	/*for (int i = 0; i < noThreads; ++i) {
+//		std::thread a(filter, bmih.biWidth, bmih.biHeight, noThreads, i, data, std::ref(modifiedData), mask);
+//		vecOfThreads.emplace_back(std::move(a));
+//	}
+//	for (int i = 0; i < noThreads; ++i) {
+//		vecOfThreads.at(i).join();
+//	}*/
+//	/*for (int i = 0; i < bmih.biHeight; ++i) {
+//		for (int k = 0; k < bmih.biWidth; ++k) {
+//			std::cout << modifiedData[i * 9 + k * 3]<<"."<< modifiedData[i * 9 + k * 3 + 1] << "." << modifiedData[i * 9 + k * 3 + 2];
+//		}
+//		std::cout << std::endl;
+//	}*/
+//	saveImage(modifiedData, "modifd.bmp");
+//}
 
-void Bmp::filterAsm() {
+void Bmp::filter(bool cpp) {
 	std::vector<std::thread> vecOfThreads;
 	unsigned char* modifiedData = new unsigned char[bmfh.bfSize - BMP_File_Header];
-	HINSTANCE hinstLib;
+
+	HINSTANCE hinstLib = cpp ? LoadLibrary(TEXT("Dll1.dll")) : LoadLibrary(TEXT("JADll.dll"));
 	int mask[] = { 1, 1, 1, 1, -8, 1, 1, 1, 1 };
 	BOOL fFreeResult;
-	hinstLib = LoadLibrary(TEXT("JADll.dll"));
-	if (hinstLib != NULL)
-	{
-		laplaceFilterAsm CIA = (laplaceFilterAsm)GetProcAddress(hinstLib, "laplaceFilterAsm");
-		if (NULL != CIA)
-		{
-
-			/*for (int i = 0; i < noThreads; ++i) {
-				std::thread a(laplaceFilterAsm, data, std::ref(modifiedData), bmih.biWidth, bmih.biHeight, noThreads, i, mask);
-				vecOfThreads.emplace_back(std::move(a));
+	if (hinstLib) {
+		if (cpp) {
+			laplaceCpp laplace = (laplaceCpp)GetProcAddress(hinstLib, "laplaceFilter");
+			if (laplace) {
+				//laplace(bmih.biWidth, bmih.biHeight, noThreads, 5, data, std::ref(modifiedData), mask);
+				for (int i = 0; i < noThreads; ++i) {
+					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, std::ref(modifiedData), mask);
+					vecOfThreads.emplace_back(std::move(a));
+				}
 			}
-			for (int i = 0; i < noThreads; ++i) {
-				vecOfThreads.at(i).join();
-			}*/
-			CIA(bmih.biWidth, bmih.biHeight, noThreads, 10, data, modifiedData, mask);
 		}
-		fFreeResult = FreeLibrary(hinstLib);
+		else {
+			laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceFilter");
+			if (laplace) {
+				data[0] = 'A';
+				data[1] = 'B';
+				data[2] = 'C';
+				modifiedData[0] = 'A';
+				modifiedData[1] = 'B';
+				modifiedData[2] = 'C';
+				for (int i = 0; i < noThreads; ++i) {
+					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, modifiedData, mask);
+					vecOfThreads.emplace_back(std::move(a));
+				}
+			}
+		}
+		for (int i = 0; i < noThreads; ++i) {
+			vecOfThreads.at(i).join();
+		}
+		FreeLibrary(hinstLib);
 	}
 }
 
