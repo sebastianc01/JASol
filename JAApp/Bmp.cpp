@@ -8,15 +8,18 @@ Bmp::Bmp(std::string file, int noThreads) {
 Bmp::~Bmp() {}
 
 void Bmp::readFile(std::string file, int noThreads) {
-	FILE* f;
-	fopen_s(&f, file.c_str(), "r");
-
-	if (!f) {
+	//FILE* f;
+	//fopen_s(&f, file.c_str(), "r");
+	std::ifstream f;
+	f.open(file.c_str(), std::ios::in | std::ios::binary);
+	if (!f.is_open()) {
 		std::cerr << "\nThe file cannot be opened.\n";
 		return;
 	}
+
 	header = new unsigned char[BMP_File_Header];
-	fread(reinterpret_cast<char*>(header), sizeof(unsigned char), BMP_File_Header, f); //54 to wielkoœæ headera
+	f.read(reinterpret_cast<char*>(header), BMP_File_Header);
+	//fread(reinterpret_cast<char*>(header), sizeof(unsigned char), BMP_File_Header, f);
 	//currentHeader = new BmpHeader(header);
 	
 	bmfh.bfType = *(int*)&header[0];
@@ -35,87 +38,64 @@ void Bmp::readFile(std::string file, int noThreads) {
 	bmih.biYPelsPerMeter = *(int*)&header[42];
 	bmih.biClrUsed = *(int*)&header[46];
 	bmih.biClrImportant = *(int*)&header[50];
-
+	const int paddingSize = (4 - (bmih.biWidth * 3) % 4) % 4;
+	//dt.resize(bmih.biWidth * bmih.biHeight);
 	data = new float[bmfh.bfSize - BMP_File_Header];
-	fread(data, sizeof(float), bmfh.bfSize - BMP_File_Header, f);
-	std::cout << data[0] << "  " << data[1] << "  " << data[2] << std::endl;
+	//fread(data, sizeof(float), bmfh.bfSize - BMP_File_Header, f);
+	for (int y = 0; y < bmih.biHeight; ++y) {
+		for (int x = 0; x < bmih.biWidth; ++x) {
+			unsigned char colour[3] = { 0,0,0 };
+			f.read(reinterpret_cast<char*>(colour), 3);
+			/*dt[y * bmih.biWidth + x].red = static_cast<float>(colour[2]) / 255.0f;
+			dt[y * bmih.biWidth + x].green = static_cast<float>(colour[1]) / 255.0f;
+			dt[y * bmih.biWidth + x].blue = static_cast<float>(colour[0]) / 255.0f;*/
+			data[3 * y * bmih.biWidth + 3 * x] = static_cast<float>(colour[2]) / 255.0f;
+			data[3 * y * bmih.biWidth + 3 * x + 1] = static_cast<float>(colour[1]) / 255.0f;
+			data[3 * y * bmih.biWidth + 3 * x + 2] = static_cast<float>(colour[0]) / 255.0f;
+		}
+		f.ignore(paddingSize);
+	}
 }
 
 
 void Bmp::filter(bool cpp) {
 	std::vector<std::thread> vecOfThreads;
-	float* modifiedData = new float[bmfh.bfSize - BMP_File_Header];
+	float* modifiedData = new float[3 * bmih.biWidth * bmih.biHeight];
 
-	//HINSTANCE hinstLib = cpp ? LoadLibrary(TEXT("Dll1.dll")) : LoadLibrary(TEXT("JADll.dll"));
-	//int mask[] = { 1, 1, 1, 1, -8, 1, 1, 1, 1 };
-	//BOOL fFreeResult;
-	//if (hinstLib) {
-	//	if (cpp) {
-	//		laplaceCpp laplace = (laplaceCpp)GetProcAddress(hinstLib, "laplaceFilter");
-	//		if (laplace) {
-	//			//laplace(bmih.biWidth, bmih.biHeight, noThreads, 5, data, std::ref(modifiedData), mask);
-	//			for (int i = 0; i < noThreads; ++i) {
-	//				std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, std::ref(modifiedData), mask);
-	//				vecOfThreads.emplace_back(std::move(a));
-	//			}
-	//		}
-	//	}
-	//	else {
-	//		laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceFilter");
-	//		if (laplace) {
-	//			for (int i = 0; i < noThreads; ++i) {
-	//				std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, modifiedData, mask);
-	//				vecOfThreads.emplace_back(std::move(a));
-	//			}
-	//		}
-	//	}
-	//	for (int i = 0; i < noThreads; ++i) {
-	//		vecOfThreads.at(i).join();
-	//	}
-	//	FreeLibrary(hinstLib);
-	//}
+	HINSTANCE hinstLib = cpp ? LoadLibrary(TEXT("Dll1.dll")) : LoadLibrary(TEXT("JADll.dll"));
+	int mask[] = { 1, 1, 1, 1, -8, 1, 1, 1, 1 };
+	BOOL fFreeResult;
+	if (hinstLib) {
+		if (cpp) {
+			laplaceCpp laplace = (laplaceCpp)GetProcAddress(hinstLib, "laplaceFilter");
+			if (laplace) {
+				//laplace(bmih.biWidth, bmih.biHeight, noThreads, 5, data, std::ref(modifiedData), mask);
+				for (int i = 0; i < noThreads; ++i) {
+					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, std::ref(modifiedData), mask);
+					vecOfThreads.emplace_back(std::move(a));
+				}
+			}
+		}
+		else {
+			laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceFilter");
+			if (laplace) {
+				for (int i = 0; i < noThreads; ++i) {
+					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, modifiedData, mask);
+					vecOfThreads.emplace_back(std::move(a));
+				}
+			}
+		}
+		for (int i = 0; i < noThreads; ++i) {
+			vecOfThreads.at(i).join();
+		}
+		FreeLibrary(hinstLib);
+	}
 	saveImage(modifiedData, "result.bmp");
 }
 
 void Bmp::saveImage(float* modifiedData, const char* destinationFile) {
-	//std::ofstream file(destinationFile, std::ios_base::binary);
-	//if (file.is_open()) {
-	//	/*fwrite(&bmfh, 1, sizeof(BITMAPFILEHEADER), file);
-	//	fwrite(&bmih, 1, sizeof(BITMAPINFOHEADER), file);
-	//	fwrite(&modifiedData, sizeof(unsigned char), sizeof(modifiedData), file);
-	//	fclose(file);*/
-	//	file.write((const char*)&bmfh, sizeof(BITMAPFILEHEADER));
-	//	UINT nWrittenFileHeaderSize = file.tellp();
-
-	//	// And then the bitmap info header
-	//	file.write((const char*)&bmih, sizeof(BITMAPINFOHEADER));
-	//	UINT nWrittenInfoHeaderSize = file.tellp();
-
-	//	unsigned char colourTable[8] = {0};
-	//	colourTable[4] = 255;
-	//	colourTable[5] = 255;
-	//	colourTable[6] = 255;
-	//	file.write((char*)colourTable, 8);
-
-	//	// Finally, write the image data itself
-	//	//-- the data represents our drawing
-	//	//for(auto it = std::begin(modifiedData);)
-	//	char* row = new char[3 * bmih.biWidth];
-	//	for (int h = 0; h < bmih.biHeight; ++h) {
-	//		//std::copy(modifiedData[h * 9], modifiedData[h * 9 + 3 * bmih.biWidth], row);
-	//		std::memcpy(row, &modifiedData[h * 3 * bmih.biWidth], 3 * bmih.biWidth);
-	//		file.write(row, bmih.biWidth);
-	//	}
-	//	delete[] row;
-	//	//file.write(reinterpret_cast<char*>(modifiedData), sizeof(modifiedData));
-	//	//UINT nWrittenDIBDataSize = file.tellp();
-	//	file.close();
-	//}
-	//else {
-	//	std::cout << "Saving unsuccessful.";
-	//}
 	std::ofstream file;
-	file.open(destinationFile, std::ios::out || std::ios::binary);
+	file.open(destinationFile, std::ios::out | std::ios::binary);
 	if (!file.is_open()) {
 		std::cout << "Pliku nie udalo sie zapisac.";
 		return;
@@ -131,16 +111,10 @@ void Bmp::saveImage(float* modifiedData, const char* destinationFile) {
 	header[3] = fileSize >> 8;
 	header[4] = fileSize >> 16;
 	header[5] = fileSize >> 24;
-	//data[0] = 0.3;
-	data[1] = 0.3;
-	//data[3] = 0.3;
-	data[1500] = 0.9;
-	data[1501] = 0.9;
-	data[3000] = (float)0.9;
 	for (int y = 0; y < bmih.biHeight; ++y) {
 		for (int x = 0; x < bmih.biWidth; ++x) {
-			std::cout << data[3 * bmih.biWidth * y + 3 * x] << "  " << data[3 * bmih.biWidth * y + 3 * x+1] << "  " << data[3 * bmih.biWidth * y + 3 * x +2] << std::endl;
-			setColour(Colour(data[3 * bmih.biWidth * y + 3 * x], data[3 * bmih.biWidth * y + 3 * x + 1], data[3 * bmih.biWidth * y + 3 * x + 2]), x, y);
+			//std::cout << data[3 * bmih.biWidth * y + 3 * x] << "  " << data[3 * bmih.biWidth * y + 3 * x+1] << "  " << data[3 * bmih.biWidth * y + 3 * x +2] << std::endl;
+			setColour(Colour(modifiedData[3 * bmih.biWidth * y + 3 * x], modifiedData[3 * bmih.biWidth * y + 3 * x + 1], modifiedData[3 * bmih.biWidth * y + 3 * x + 2]), x, y);
 			//setColour(Colour((float)x / (float)bmih.biWidth, 1.0f - ((float)x / (float)bmih.biWidth), (float)y / (float)bmih.biHeight), x, y);
 		}
 	}
