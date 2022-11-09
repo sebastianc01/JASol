@@ -60,10 +60,12 @@ void Bmp::readFile(std::string file, int noThreads) {
 
 void Bmp::filter(bool cpp) {
 	std::vector<std::thread> vecOfThreads;
-	float* modifiedData = new float[3 * bmih.biWidth * bmih.biHeight];
-
+	/*float* modifiedData = new float[3 * bmih.biWidth * bmih.biHeight];
+	for (int i = 0; i < 3 * bmih.biWidth * bmih.biHeight; ++i) {
+		modifiedData[i] = 0;
+	}*/
 	HINSTANCE hinstLib = cpp ? LoadLibrary(TEXT("Dll1.dll")) : LoadLibrary(TEXT("JADll.dll"));
-	int mask[] = { 1, 1, 1, 1, -8, 1, 1, 1, 1 };
+	float mask[] = { 1.0f, 1.0f, 1.0f, 1.0f, -8.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 	BOOL fFreeResult;
 	if (hinstLib) {
 		if (cpp) {
@@ -71,7 +73,7 @@ void Bmp::filter(bool cpp) {
 			if (laplace) {
 				//laplace(bmih.biWidth, bmih.biHeight, noThreads, 5, data, std::ref(modifiedData), mask);
 				for (int i = 0; i < noThreads; ++i) {
-					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, std::ref(modifiedData), mask);
+					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
 					vecOfThreads.emplace_back(std::move(a));
 				}
 			}
@@ -80,7 +82,7 @@ void Bmp::filter(bool cpp) {
 			laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceFilter");
 			if (laplace) {
 				for (int i = 0; i < noThreads; ++i) {
-					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, modifiedData, mask);
+					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
 					vecOfThreads.emplace_back(std::move(a));
 				}
 			}

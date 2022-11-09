@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <thread>
+#include <future>
 #include <vector>
 #include <Windows.h>
 #include <fstream>
@@ -14,8 +15,8 @@
 #define FileHeaderSize 14
 #define InfoHeaderSize 40
 
-typedef void(_stdcall* laplaceAsm)(int , int, const int, int, float*, float*, const int*);
-typedef void(*laplaceCpp)(int, int, const int, int, float*, float*, const int*);
+typedef void(_stdcall* laplaceAsm)(int , int, const int, int, float*, float*, float*);
+typedef void(*laplaceCpp)(int, int, const int, int, float*, float*, float*);
 
 class Bmp {
 	size_t width;
