@@ -7,4 +7,4 @@
 #endif
 
 
-extern "C" FILTERLIBRARY_API void laplaceFilter(int width, int height, const int noThreads, int position, unsigned char* data, unsigned char* modifiedData, const int* mask);
+extern "C" FILTERLIBRARY_API void laplaceFilter(int width, int height, const int noThreads, int position, float* data, float* modifiedData, const int* mask);

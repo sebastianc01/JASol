@@ -7,7 +7,7 @@
 
 #include "JAcpp.h"
 
-void laplaceFilter(int width, int height, const int noThreads, int position, unsigned char* data, unsigned char* modifiedData, const int* mask) {
+void laplaceFilter(int width, int height, const int noThreads, int position, float* data, float* modifiedData, const int* mask) {
 	for (size_t H = position; H < height; H += noThreads) { //height of the whole image
 		for (size_t W = 0; W < width; ++W) { //width of the whole image
 			for (int i = 0; i < 3; ++i) { //considering 3 colours of all bits
