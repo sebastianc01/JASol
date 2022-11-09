@@ -5,20 +5,20 @@ Bmp::Bmp(std::string file, int noThreads) {
 	this->noThreads = noThreads;
 }
 
-Bmp::~Bmp() {
-	//delete currentHeader;
-}
+Bmp::~Bmp() {}
 
 void Bmp::readFile(std::string file, int noThreads) {
 	FILE* f;
 	fopen_s(&f, file.c_str(), "r");
+
 	if (!f) {
 		std::cerr << "\nThe file cannot be opened.\n";
 		return;
 	}
 	header = new unsigned char[BMP_File_Header];
-	fread(header, sizeof(unsigned char), BMP_File_Header, f); //54 to wielkoœæ headera
+	fread(reinterpret_cast<char*>(header), sizeof(unsigned char), BMP_File_Header, f); //54 to wielkoœæ headera
 	//currentHeader = new BmpHeader(header);
+	
 	bmfh.bfType = *(int*)&header[0];
 	bmfh.bfSize = *(int*)&header[2];
 	bmfh.bfReserved1 = *(int*)&header[6];
@@ -38,7 +38,7 @@ void Bmp::readFile(std::string file, int noThreads) {
 
 	data = new float[bmfh.bfSize - BMP_File_Header];
 	fread(data, sizeof(float), bmfh.bfSize - BMP_File_Header, f);
-	std::cout << "a";
+	std::cout << data[0] << "  " << data[1] << "  " << data[2] << std::endl;
 }
 
 
@@ -46,34 +46,34 @@ void Bmp::filter(bool cpp) {
 	std::vector<std::thread> vecOfThreads;
 	float* modifiedData = new float[bmfh.bfSize - BMP_File_Header];
 
-	HINSTANCE hinstLib = cpp ? LoadLibrary(TEXT("Dll1.dll")) : LoadLibrary(TEXT("JADll.dll"));
-	int mask[] = { 1, 1, 1, 1, -8, 1, 1, 1, 1 };
-	BOOL fFreeResult;
-	if (hinstLib) {
-		if (cpp) {
-			laplaceCpp laplace = (laplaceCpp)GetProcAddress(hinstLib, "laplaceFilter");
-			if (laplace) {
-				//laplace(bmih.biWidth, bmih.biHeight, noThreads, 5, data, std::ref(modifiedData), mask);
-				for (int i = 0; i < noThreads; ++i) {
-					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, std::ref(modifiedData), mask);
-					vecOfThreads.emplace_back(std::move(a));
-				}
-			}
-		}
-		else {
-			laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceFilter");
-			if (laplace) {
-				for (int i = 0; i < noThreads; ++i) {
-					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, modifiedData, mask);
-					vecOfThreads.emplace_back(std::move(a));
-				}
-			}
-		}
-		for (int i = 0; i < noThreads; ++i) {
-			vecOfThreads.at(i).join();
-		}
-		FreeLibrary(hinstLib);
-	}
+	//HINSTANCE hinstLib = cpp ? LoadLibrary(TEXT("Dll1.dll")) : LoadLibrary(TEXT("JADll.dll"));
+	//int mask[] = { 1, 1, 1, 1, -8, 1, 1, 1, 1 };
+	//BOOL fFreeResult;
+	//if (hinstLib) {
+	//	if (cpp) {
+	//		laplaceCpp laplace = (laplaceCpp)GetProcAddress(hinstLib, "laplaceFilter");
+	//		if (laplace) {
+	//			//laplace(bmih.biWidth, bmih.biHeight, noThreads, 5, data, std::ref(modifiedData), mask);
+	//			for (int i = 0; i < noThreads; ++i) {
+	//				std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, std::ref(modifiedData), mask);
+	//				vecOfThreads.emplace_back(std::move(a));
+	//			}
+	//		}
+	//	}
+	//	else {
+	//		laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceFilter");
+	//		if (laplace) {
+	//			for (int i = 0; i < noThreads; ++i) {
+	//				std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, modifiedData, mask);
+	//				vecOfThreads.emplace_back(std::move(a));
+	//			}
+	//		}
+	//	}
+	//	for (int i = 0; i < noThreads; ++i) {
+	//		vecOfThreads.at(i).join();
+	//	}
+	//	FreeLibrary(hinstLib);
+	//}
 	saveImage(modifiedData, "result.bmp");
 }
 
@@ -125,29 +125,33 @@ void Bmp::saveImage(float* modifiedData, const char* destinationFile) {
 	//BITMAPFILEHEADER bmfht = bmfh;
 	//BITMAPINFOHEADER bmiht = bmih;
 	const int fileSize = BMP_File_Header + 3 * bmih.biWidth * bmih.biHeight + 3 * bmih.biHeight;
-	dt.resize(fileSize);
+	dt.resize(bmih.biWidth * bmih.biHeight);
 	//bmfht.bfSize = BMP_File_Header + 3 * bmih.biWidth * bmih.biHeight + 3 * bmih.biHeight;
 	header[2] = fileSize;
 	header[3] = fileSize >> 8;
 	header[4] = fileSize >> 16;
 	header[5] = fileSize >> 24;
-	//char* a = new char (sizeof(bmfht));
-	//send(a, (char*)&bmfht, sizeof(bmfht), 0);
-	//send(a, lpbitmap, dwBmpSize, 0);
-	//file.write(reinterpret_cast<char*>(bmfht), FileHeaderSize);
-	//file.write(&bmiht, InfoHeaderSize);
+	//data[0] = 0.3;
+	data[1] = 0.3;
+	//data[3] = 0.3;
+	data[1500] = 0.9;
+	data[1501] = 0.9;
+	data[3000] = (float)0.9;
 	for (int y = 0; y < bmih.biHeight; ++y) {
 		for (int x = 0; x < bmih.biWidth; ++x) {
+			std::cout << data[3 * bmih.biWidth * y + 3 * x] << "  " << data[3 * bmih.biWidth * y + 3 * x+1] << "  " << data[3 * bmih.biWidth * y + 3 * x +2] << std::endl;
 			setColour(Colour(data[3 * bmih.biWidth * y + 3 * x], data[3 * bmih.biWidth * y + 3 * x + 1], data[3 * bmih.biWidth * y + 3 * x + 2]), x, y);
+			//setColour(Colour((float)x / (float)bmih.biWidth, 1.0f - ((float)x / (float)bmih.biWidth), (float)y / (float)bmih.biHeight), x, y);
 		}
 	}
-	setColour(Colour(55, 55, 55), 0, 100);
+	
+	//setColour(Colour(0, 0, 55), 0, 100);
 	file.write(reinterpret_cast<char*>(header), BMP_File_Header);
 	for (int y=0; y < bmih.biHeight; ++y) {
 		for (int x = 0; x < bmih.biWidth; ++x) {
-			unsigned char r = getColour(x, y).red * 255.0f;
-			unsigned char g = getColour(x, y).green * 255.0f;
-			unsigned char b = getColour(x, y).blue * 255.0f;
+			unsigned char r = static_cast<unsigned char>(getColour(x, y).red * 255.0f);
+			unsigned char g = static_cast<unsigned char>(getColour(x, y).green * 255.0f);
+			unsigned char b = static_cast<unsigned char>(getColour(x, y).blue * 255.0f);
 			unsigned char c[] = {b, g, r};
 			file.write(reinterpret_cast<char*>(c), 3);
 		}
@@ -164,6 +168,8 @@ Colour Bmp::getColour(int x, int y) const
 void Bmp::setColour(const Colour& colour, int x, int y)
 {
 	dt.at(y * bmih.biWidth + x).red = colour.red;
+	dt.at(y * bmih.biWidth + x).blue = colour.blue;
+	dt.at(y * bmih.biWidth + x).green = colour.green;
 }
 
 
