@@ -7,8 +7,8 @@
 
 #include "JAcpp.h"
 
-float* laplaceFilter(int width, int height, const int noThreads, int position, float* data, float* mask) {
-	const int noRows = height / noThreads;
+void laplaceFilter(int width, int height, const int noThreads, int position, float* data,float* modifiedData, float* mask) {
+	/*const int noRows = height / noThreads;
 	float* modifiedData = new float[noRows];
 	for (int i = 0; i < noRows; ++i) {
 		modifiedData[i] = 0.0f;
@@ -30,10 +30,10 @@ float* laplaceFilter(int width, int height, const int noThreads, int position, f
 			}
 		}
 	}
-	return modifiedData;
+	return modifiedData;*/
 	//for (size_t H = position; H < height; H += noThreads) { //height of the whole image
 	//	for (size_t W = 0; W < width; ++W) { //width of the whole image
-	//		for (int i = 0; i < 3; ++i) { //considering 3 colours of all bits
+	//		for (int i = 0; i < 3; ++i) { //considering 3 colours of every bit
 	//			for (int h = -1; h <= 1; ++h) { //height of the mask
 	//				if (h + H >= 0 && h + H < height) { //considered height has to be greater than 0 and smaller then maximum height of the image
 	//					for (int w = -1; w <= 1; ++w) { //width of the mask
@@ -48,4 +48,13 @@ float* laplaceFilter(int width, int height, const int noThreads, int position, f
 	//		}
 	//	}
 	//}
+	int noRows = height - (noThreads * (height / noThreads)) > position ? height / noThreads + 1 : height / noThreads;
+	//modifiedData = new float[3 * noRows * width];
+	for (int i = 0; i < noRows; ++i) {
+		for (int w = 0; w < width; ++w) {
+			modifiedData[3 * i * width + 3 * w] = position;
+			modifiedData[3 * i * width + 3 * w + 1] = position + 1.0f;
+			modifiedData[3 * i * width + 3 * w + 2] = position + 2.0f;
+		}
+	}
 }

@@ -60,8 +60,12 @@ void Bmp::readFile(std::string file, int noThreads) {
 
 void Bmp::filter(bool cpp) {
 	std::vector<std::thread> vecOfThreads;
-	/*float* modifiedData = new float[3 * bmih.biWidth * bmih.biHeight];
-	for (int i = 0; i < 3 * bmih.biWidth * bmih.biHeight; ++i) {
+	float** modifiedData = new float*[noThreads];
+	/*for (int i = 0; i < noThreads; ++i) {
+		modifiedData[i] = new float [bmih.biHeight / noThreads];
+	}*/
+	//std::vector<std::future<float*>> vecOfThreads;
+	/*for (int i = 0; i < 3 * bmih.biWidth * bmih.biHeight; ++i) {
 		modifiedData[i] = 0;
 	}*/
 	HINSTANCE hinstLib = cpp ? LoadLibrary(TEXT("Dll1.dll")) : LoadLibrary(TEXT("JADll.dll"));
@@ -73,8 +77,13 @@ void Bmp::filter(bool cpp) {
 			if (laplace) {
 				//laplace(bmih.biWidth, bmih.biHeight, noThreads, 5, data, std::ref(modifiedData), mask);
 				for (int i = 0; i < noThreads; ++i) {
-					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
+					//laplace(bmih.biWidth, bmih.biHeight, noThreads, i, data, *modifiedData, mask);
+					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
+					modifiedData[i] = new float[3 * noRows * bmih.biWidth];
+					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, modifiedData[i], mask);
 					vecOfThreads.emplace_back(std::move(a));
+					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
+					vecOfThreads.emplace_back(std::move(a));*/
 				}
 			}
 		}
@@ -82,17 +91,35 @@ void Bmp::filter(bool cpp) {
 			laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceFilter");
 			if (laplace) {
 				for (int i = 0; i < noThreads; ++i) {
-					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
-					vecOfThreads.emplace_back(std::move(a));
+					/*std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
+					vecOfThreads.emplace_back(std::move(a));*/
+					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
+					vecOfThreads.emplace_back(std::move(a));*/
 				}
 			}
 		}
-		for (int i = 0; i < noThreads; ++i) {
+		for (int i = 0, pos = 0; i < noThreads; ++i) {
+			//vecOfThreads.at(i).get();
+			/*int tSize = sizeof(vecOfThreads.at(i).get());
+			for (int k = 0; k < tSize; ++k, ++pos) {
+				modifiedData[pos] = vecOfThreads.at(i).get()[k];
+			}*/
 			vecOfThreads.at(i).join();
 		}
 		FreeLibrary(hinstLib);
 	}
-	saveImage(modifiedData, "result.bmp");
+	float* finalData = new float[3 * bmih.biHeight * bmih.biWidth];
+	//saveImage(*modifiedData, "result.bmp");
+	for (int i = 0, pos = 0; i < noThreads; ++i) {
+		int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
+		pos = pos + 3 * noRows * bmih.biWidth;
+		//std::copy(std::begin(modifiedData[i]), std::end(modifiedData[i]), std::end(finalData));
+
+		delete[] modifiedData[i];
+	}
+	saveImage(finalData, "result.bmp");
+	delete[] modifiedData;
+	delete[] finalData;
 }
 
 void Bmp::saveImage(float* modifiedData, const char* destinationFile) {
