@@ -15,12 +15,12 @@
 #define FileHeaderSize 14
 #define InfoHeaderSize 40
 
-typedef float*(_stdcall* laplaceAsm)(int , int, const int, int, float*, float*);
+typedef float*(_stdcall* laplaceAsm)(int, int, const int, int, float*, float*, float*);
 typedef void(*laplaceCpp)(int, int, const int, int, float*, float*, float*);
 
 class Bmp {
-	size_t width;
-	size_t height;
+	//size_t width;
+	//size_t height;
 	size_t size;
 	unsigned char* header;
 	float* data;

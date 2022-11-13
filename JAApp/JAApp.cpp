@@ -13,7 +13,7 @@ int main(void)
     Bmp image("pingwin.bmp", 10);
     //image.filterCpp();
     //image.filterAsm();
-    image.filter(true);
+    image.filter(false);
     return 0;
 
 }

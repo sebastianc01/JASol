@@ -80,6 +80,9 @@ void Bmp::filter(bool cpp) {
 					//laplace(bmih.biWidth, bmih.biHeight, noThreads, i, data, *modifiedData, mask);
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
 					modifiedData[i] = new float[3 * noRows * bmih.biWidth];
+					for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
+						modifiedData[i][k] = 0.0f;
+					}
 					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, modifiedData[i], mask);
 					vecOfThreads.emplace_back(std::move(a));
 					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
@@ -91,8 +94,10 @@ void Bmp::filter(bool cpp) {
 			laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceFilter");
 			if (laplace) {
 				for (int i = 0; i < noThreads; ++i) {
-					/*std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
-					vecOfThreads.emplace_back(std::move(a));*/
+					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
+					modifiedData[i] = new float[3 * noRows * bmih.biWidth];
+					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, modifiedData[i], mask);
+					vecOfThreads.emplace_back(std::move(a));
 					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
 					vecOfThreads.emplace_back(std::move(a));*/
 				}
@@ -112,9 +117,11 @@ void Bmp::filter(bool cpp) {
 	//saveImage(*modifiedData, "result.bmp");
 	for (int i = 0, pos = 0; i < noThreads; ++i) {
 		int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
-		pos = pos + 3 * noRows * bmih.biWidth;
+		//pos = pos + 3 * noRows * bmih.biWidth;
 		//std::copy(std::begin(modifiedData[i]), std::end(modifiedData[i]), std::end(finalData));
-
+		for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k, ++pos) {
+			finalData[pos] = modifiedData[i][k];
+		}
 		delete[] modifiedData[i];
 	}
 	saveImage(finalData, "result.bmp");
