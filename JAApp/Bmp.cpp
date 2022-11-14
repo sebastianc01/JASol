@@ -83,7 +83,7 @@ void Bmp::filter(bool cpp) {
 					for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
 						modifiedData[i][k] = 0.0f;
 					}
-					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, modifiedData[i], mask);
+					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, i);
 					vecOfThreads.emplace_back(std::move(a));
 					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
 					vecOfThreads.emplace_back(std::move(a));*/
@@ -96,7 +96,7 @@ void Bmp::filter(bool cpp) {
 				for (int i = 0; i < noThreads; ++i) {
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
 					modifiedData[i] = new float[3 * noRows * bmih.biWidth];
-					std::thread a(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, modifiedData[i], mask);
+					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, i);
 					vecOfThreads.emplace_back(std::move(a));
 					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
 					vecOfThreads.emplace_back(std::move(a));*/

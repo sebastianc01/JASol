@@ -1,30 +1,33 @@
 .DATA
-data QWORD ?
-modifiedData QWORD ?
-maskB QWORD ?
+height DD ?
+width DD ?
+noThreads DD ?
+position DD ?
+dataAddress QWORD ?
+modifiedDataAddress QWORD ?
+maskAddress QWORD ?
 five DD 5.0
 .CODE
 
 laplaceFilter proc
-; Image width is stored in RCX
-; Image height is stored in RDX
-; Number of threads R8
-; Position R9
+; Address of the data is stored in RCX
+; Address of the modified data is stored in RDX
+; Address of the mask is stored in R8
+; Image width is stored in R9
+
 	push    rbp
     mov     rbp, rsp
-	mov rax, QWORD PTR [rbp]
-	mov rax, QWORD PTR [rbp+8]
-	mov rax, QWORD PTR [rbp+16]
-	mov data, rax
-	mov rax, QWORD PTR [rbp+24]
-	mov rax, QWORD PTR [rbp+32]
-	mov rax, QWORD PTR [rbp+40]
-	mov rax, QWORD PTR [rbp+48]
-	mov rax, QWORD PTR [rbp+56]
-	mov rax, QWORD PTR [rbp+64]
-	mov maskB, rax
-	mov rax, QWORD PTR [rbp+72]
-	mov rax, QWORD PTR [rbp+80]
+	mov dataAddress, rcx
+	mov modifiedDataAddress, rdx
+	mov maskAddress, r8
+	mov width, r9
+	mov eax, DWORD PTR [rbp+48] ;	Image height is stored in eax
+	mov height, eax
+	mov eax, DWORD PTR [rbp+52] ;	Number of threads is stored in eax
+	mov noThreads, eax
+	mov eax, DWORD PTR [rbp+56] ;	Position is stored in eax
+	mov position, eax
+
 	mov modifiedData, rax
 	;movss xmm0, [five]
     ;movss [rbp+24], xmm0
