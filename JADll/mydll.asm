@@ -1,12 +1,13 @@
 .DATA
-height DD ?
-width DD ?
+imageHeight DD ?
+imageWidth DD ?
 noThreads DD ?
 position DD ?
-dataAddress QWORD ?
-modifiedDataAddress QWORD ?
-maskAddress QWORD ?
-five DD 5.0
+dataAddress DQ ?
+modifiedDataAddress DQ ?
+maskAddress DQ ?
+const dd 0.6
+
 .CODE
 
 laplaceFilter proc
@@ -20,21 +21,45 @@ laplaceFilter proc
 	mov dataAddress, rcx
 	mov modifiedDataAddress, rdx
 	mov maskAddress, r8
-	mov width, r9
+	mov imageWidth, r9d
 	mov eax, DWORD PTR [rbp+48] ;	Image height is stored in eax
-	mov height, eax
-	mov eax, DWORD PTR [rbp+52] ;	Number of threads is stored in eax
+	mov imageHeight, eax
+	mov eax, DWORD PTR [rbp+56] ;	Number of threads is stored in eax
 	mov noThreads, eax
-	mov eax, DWORD PTR [rbp+56] ;	Position is stored in eax
+	mov eax, DWORD PTR [rbp+64] ;	Position is stored in eax
 	mov position, eax
 
-	mov modifiedData, rax
+	mov rcx, modifiedDataAddress	; modifiedDataAddress is now stored in rcx
+	movss xmm0, [const]
+	movss DWORD PTR [rcx+64], xmm0
+
+cpy:
+	mov rdx, dataAddress
+	mov rcx, modifiedDataAddress
+	mov rbx, 0
+
+
+	inc rbx
+	;cmp rbx,
+endA:
+	mov ebx, eax
+	xor rax, rax
+	mov eax, ebx
+	add rax, rcx
+	movd xmm0, DWORD PTR[rsi+rax]		; save dword in xmm
+	pmovzxbw xmm0, xmm0					; set bytes as words
+	vpbroadcastq xmm0, xmm0				; copy first half into the second half
+	
+	;movss xmm0, 5
+	;movss QWORD PTR [rdx], xmm0
+
+	;mov modifiedData, rax
 	;movss xmm0, [five]
     ;movss [rbp+24], xmm0
 
-	mov rax, qword ptr [rbp+24]
-	movss xmm0, [five]
-    movss dword ptr [rax], xmm0
+	;mov rax, qword ptr [rbp+24]
+	;movss xmm0, [five]
+    ;movss dword ptr [rax], xmm0
 
 	mov rax, 9		; rax contains 9
 	mul rdx			; multiplication values stored in rax and rdx, product in rax

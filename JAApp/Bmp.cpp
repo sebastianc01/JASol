@@ -68,6 +68,7 @@ void Bmp::filter(bool cpp) {
 	/*for (int i = 0; i < 3 * bmih.biWidth * bmih.biHeight; ++i) {
 		modifiedData[i] = 0;
 	}*/
+
 	HINSTANCE hinstLib = cpp ? LoadLibrary(TEXT("Dll1.dll")) : LoadLibrary(TEXT("JADll.dll"));
 	float mask[] = { 1.0f, 1.0f, 1.0f, 1.0f, -8.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 	BOOL fFreeResult;
@@ -98,6 +99,10 @@ void Bmp::filter(bool cpp) {
 					modifiedData[i] = new float[3 * noRows * bmih.biWidth];
 					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, i);
 					vecOfThreads.emplace_back(std::move(a));
+					/*for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
+						std::cout << modifiedData[i][k]<<"  ";
+					}
+					std::cout << std::endl;*/
 					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
 					vecOfThreads.emplace_back(std::move(a));*/
 				}
