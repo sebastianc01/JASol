@@ -28,7 +28,7 @@ void Bmp::readFile(std::string file, int noThreads) {
 
 	const int paddingSize = (4 - (bmih.biWidth * 3) % 4) % 4;
 	//dt.resize(bmih.biWidth * bmih.biHeight);
-	data = new float[bmfh.bfSize - BMP_File_Header];
+	data = new unsigned char[bmfh.bfSize - BMP_File_Header];
 	//fread(data, sizeof(float), bmfh.bfSize - BMP_File_Header, f);
 	for (int y = 0; y < bmih.biHeight; ++y) {
 		for (int x = 0; x < bmih.biWidth; ++x) {
@@ -37,9 +37,9 @@ void Bmp::readFile(std::string file, int noThreads) {
 			/*dt[y * bmih.biWidth + x].red = static_cast<float>(colour[2]) / 255.0f;
 			dt[y * bmih.biWidth + x].green = static_cast<float>(colour[1]) / 255.0f;
 			dt[y * bmih.biWidth + x].blue = static_cast<float>(colour[0]) / 255.0f;*/
-			data[3 * y * bmih.biWidth + 3 * x] = static_cast<float>(colour[2]) / 255.0f;
-			data[3 * y * bmih.biWidth + 3 * x + 1] = static_cast<float>(colour[1]) / 255.0f;
-			data[3 * y * bmih.biWidth + 3 * x + 2] = static_cast<float>(colour[0]) / 255.0f;
+			data[3 * y * bmih.biWidth + 3 * x] = static_cast<unsigned char>(colour[2]);
+			data[3 * y * bmih.biWidth + 3 * x + 1] = static_cast<unsigned char>(colour[1]);
+			data[3 * y * bmih.biWidth + 3 * x + 2] = static_cast<unsigned char>(colour[0]);
 		}
 		f.ignore(paddingSize);
 	}
@@ -48,7 +48,7 @@ void Bmp::readFile(std::string file, int noThreads) {
 
 void Bmp::filter(bool cpp) {
 	std::vector<std::thread> vecOfThreads;
-	float** modifiedData = new float*[noThreads];
+	unsigned char** modifiedData = new unsigned char*[noThreads];
 	/*for (int i = 0; i < noThreads; ++i) {
 		modifiedData[i] = new float [bmih.biHeight / noThreads];
 	}*/
@@ -58,7 +58,7 @@ void Bmp::filter(bool cpp) {
 	}*/
 
 	HINSTANCE hinstLib = cpp ? LoadLibrary(TEXT("Dll1.dll")) : LoadLibrary(TEXT("JADll.dll"));
-	float mask[] = { 1.0f, 1.0f, 1.0f, 1.0f, -8.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+	unsigned char mask[] = { 1, 1, 1, 1, -8, 1, 1, 1, 1 };
 	BOOL fFreeResult;
 	std::chrono::time_point<std::chrono::high_resolution_clock> start;
 	std::chrono::time_point<std::chrono::high_resolution_clock> end;
@@ -69,9 +69,9 @@ void Bmp::filter(bool cpp) {
 				//laplace(bmih.biWidth, bmih.biHeight, noThreads, 5, data, std::ref(modifiedData), mask);
 				for (int i = 0; i < noThreads; ++i) {
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
-					modifiedData[i] = new float[3 * noRows * bmih.biWidth];
+					modifiedData[i] = new unsigned char[3 * noRows * bmih.biWidth];
 					for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
-						modifiedData[i][k] = 0.0f;
+						modifiedData[i][k] = 0;
 					}
 				}
 				start = std::chrono::high_resolution_clock::now();
@@ -90,7 +90,10 @@ void Bmp::filter(bool cpp) {
 			if (laplace) {
 				for (int i = 0; i < noThreads; ++i) {
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
-					modifiedData[i] = new float[3 * noRows * bmih.biWidth];
+					modifiedData[i] = new unsigned char[3 * noRows * bmih.biWidth];
+					for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
+						modifiedData[i][k] = 0;
+					}
 				}
 				start = std::chrono::high_resolution_clock::now();
 				for (int i = 0; i < noThreads; ++i) {
@@ -118,7 +121,7 @@ void Bmp::filter(bool cpp) {
 	}
 	std::chrono::duration<double> diff = end - start;
 	std::cout<<"Time: "<<diff.count();
-	float* finalData = new float[3 * bmih.biHeight * bmih.biWidth];
+	unsigned char* finalData = new unsigned char[3 * bmih.biHeight * bmih.biWidth];
 	//saveImage(*modifiedData, "result.bmp");
 	for (int i = 0, pos = 0; i < noThreads; ++i) {
 		int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
@@ -134,7 +137,7 @@ void Bmp::filter(bool cpp) {
 	delete[] finalData;
 }
 
-void Bmp::saveImage(float* modifiedData, const char* destinationFile) {
+void Bmp::saveImage(unsigned char* modifiedData, const char* destinationFile) {
 	std::ofstream file;
 	file.open(destinationFile, std::ios::out | std::ios::binary);
 	if (!file.is_open()) {
@@ -164,9 +167,9 @@ void Bmp::saveImage(float* modifiedData, const char* destinationFile) {
 	file.write(reinterpret_cast<char*>(header), BMP_File_Header);
 	for (int y=0; y < bmih.biHeight; ++y) {
 		for (int x = 0; x < bmih.biWidth; ++x) {
-			unsigned char r = static_cast<unsigned char>(getColour(x, y).red * 255.0f);
-			unsigned char g = static_cast<unsigned char>(getColour(x, y).green * 255.0f);
-			unsigned char b = static_cast<unsigned char>(getColour(x, y).blue * 255.0f);
+			unsigned char r = static_cast<unsigned char>(getColour(x, y).red);
+			unsigned char g = static_cast<unsigned char>(getColour(x, y).green);
+			unsigned char b = static_cast<unsigned char>(getColour(x, y).blue);
 			unsigned char c[] = {b, g, r};
 			file.write(reinterpret_cast<char*>(c), 3);
 		}

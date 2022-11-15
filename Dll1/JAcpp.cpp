@@ -7,13 +7,12 @@
 #include <iostream>
 #include "JAcpp.h"
 
-void laplaceFilter(float* data, float* modifiedData, float* mask, int width, int height, const int noThreads, int position) {
+void laplaceFilter(unsigned char* data, unsigned char* modifiedData, unsigned char* mask, int width, int height, const int noThreads, int position) {
 	const int noRows = height - (noThreads * (height / noThreads)) > position ? height / noThreads + 1 : height / noThreads;
-	modifiedData[position] = 0.78f;
-	return;
-	//float* modifiedData = new float[3 * noRows * width];
+	
+
 	for (int i = 0; i < 3 * noRows * width; ++i) {
-		modifiedData[i] = 0.0f;
+		modifiedData[i] = 
 	}
 	for (size_t H = 0; H < noRows; ++H) {
 		for (size_t W = 0; W < width; ++W) {
@@ -22,16 +21,22 @@ void laplaceFilter(float* data, float* modifiedData, float* mask, int width, int
 					if (h + H >= 0 && h + H < height) {
 						for (int w = -1; w <= 1; ++w) {
 							if (w + W >= 0 && w + W < width) {
-								int modDataArg = (H + h) * 3 * width + (W + w) * 3 + i;
-								int dataArg = 3 * noRows * position * width + (H + h) * 3 * width + (W + w) * 3 + i;
-								int maskArg = h * 3 + w + 3 + 1;
-								if (H == noRows - 1 && position == 10) {
-									std::cout << "s";
+								//int modDataArg = (H + h) * 3 * width + (W + w) * 3 + i;
+								//int dataArg = 3 * noRows * position * width + (H + h) * 3 * width + (W + w) * 3 + i;
+								//int maskArg = h * 3 + w + 3 + 1;
+								if (h * 3 + w + 3 + 1 < 0 || h * 3 + w + 3 + 1 > 8) {
+									std::cout << "Nieprawidlowwy adres maski.";
 								}
-								modifiedData[(H + h) * 3 * width + (W + w) * 3 + i] =
-									modifiedData[(H + h) * 3 * width + (W + w) * 3 + i]
-									+ data[3 * noRows * position * width + (H + h) * 3 * width + (W + w) * 3 + i]
-									* mask[h * 3 + w + 3 + 1]; //+1, because w starts with value -1, +3 because h starts with value -1
+								if ((H + h) * width + (W + w) + i < 0 || (H + h) * width + (W + w) + i > 3 * noRows * width) {
+									std::cout << "Nieprawidlowy adres modifiedData.";
+								}
+								if (noRows * position * width + (H + h) * width + (W + w) + i <0|| noRows * position * width + (H + h) * width + (W + w) + i>width*height*3) {
+									std::cout << "Nieprawidlowy adres data.";
+								}
+								modifiedData[(H + h) * width + (W + w) + i] =
+									modifiedData[(H + h) * width + (W + w) + i]
+									+ (data[noRows * position * width + (H + h) * width + (W + w) + i]
+									* mask[h * 3 + w + 3 + 1]); //+1, because w starts with value -1, +3 because h starts with value -1
 							}
 						}
 					}
