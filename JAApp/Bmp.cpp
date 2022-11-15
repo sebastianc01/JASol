@@ -21,23 +21,11 @@ void Bmp::readFile(std::string file, int noThreads) {
 	f.read(reinterpret_cast<char*>(header), BMP_File_Header);
 	//fread(reinterpret_cast<char*>(header), sizeof(unsigned char), BMP_File_Header, f);
 	//currentHeader = new BmpHeader(header);
-	
-	bmfh.bfType = *(int*)&header[0];
-	bmfh.bfSize = *(int*)&header[2];
-	bmfh.bfReserved1 = *(int*)&header[6];
-	bmfh.bfReserved2 = *(int*)&header[8];
-	bmfh.bfOffBits = *(int*)&header[10];
-	bmih.biSize = *(int*)&header[14];
-	bmih.biWidth = *(int*)&header[18];
-	bmih.biHeight = *(int*)&header[22];
-	bmih.biPlanes = *(int*)&header[26];
-	bmih.biBitCount = *(int*)&header[28];
-	bmih.biCompression = *(int*)&header[30];
-	bmih.biSizeImage = *(int*)&header[34];
-	bmih.biXPelsPerMeter = *(int*)&header[38];
-	bmih.biYPelsPerMeter = *(int*)&header[42];
-	bmih.biClrUsed = *(int*)&header[46];
-	bmih.biClrImportant = *(int*)&header[50];
+	f.clear();
+	f.seekg(0);
+	f.read((char*)&bmfh, FileHeaderSize);
+	f.read((char*)&bmih, InfoHeaderSize);
+
 	const int paddingSize = (4 - (bmih.biWidth * 3) % 4) % 4;
 	//dt.resize(bmih.biWidth * bmih.biHeight);
 	data = new float[bmfh.bfSize - BMP_File_Header];
@@ -72,18 +60,24 @@ void Bmp::filter(bool cpp) {
 	HINSTANCE hinstLib = cpp ? LoadLibrary(TEXT("Dll1.dll")) : LoadLibrary(TEXT("JADll.dll"));
 	float mask[] = { 1.0f, 1.0f, 1.0f, 1.0f, -8.0f, 1.0f, 1.0f, 1.0f, 1.0f };
 	BOOL fFreeResult;
+	std::chrono::time_point<std::chrono::high_resolution_clock> start;
+	std::chrono::time_point<std::chrono::high_resolution_clock> end;
 	if (hinstLib) {
 		if (cpp) {
 			laplaceCpp laplace = (laplaceCpp)GetProcAddress(hinstLib, "laplaceFilter");
 			if (laplace) {
 				//laplace(bmih.biWidth, bmih.biHeight, noThreads, 5, data, std::ref(modifiedData), mask);
 				for (int i = 0; i < noThreads; ++i) {
-					//laplace(bmih.biWidth, bmih.biHeight, noThreads, i, data, *modifiedData, mask);
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
 					modifiedData[i] = new float[3 * noRows * bmih.biWidth];
 					for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
 						modifiedData[i][k] = 0.0f;
 					}
+				}
+				start = std::chrono::high_resolution_clock::now();
+				for (int i = 0; i < noThreads; ++i) {
+					//laplace(bmih.biWidth, bmih.biHeight, noThreads, i, data, *modifiedData, mask);
+					
 					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, i);
 					vecOfThreads.emplace_back(std::move(a));
 					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
@@ -97,6 +91,9 @@ void Bmp::filter(bool cpp) {
 				for (int i = 0; i < noThreads; ++i) {
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
 					modifiedData[i] = new float[3 * noRows * bmih.biWidth];
+				}
+				start = std::chrono::high_resolution_clock::now();
+				for (int i = 0; i < noThreads; ++i) {
 					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, i);
 					vecOfThreads.emplace_back(std::move(a));
 					/*for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
@@ -116,8 +113,11 @@ void Bmp::filter(bool cpp) {
 			}*/
 			vecOfThreads.at(i).join();
 		}
+		end = std::chrono::high_resolution_clock::now();
 		FreeLibrary(hinstLib);
 	}
+	std::chrono::duration<double> diff = end - start;
+	std::cout<<"Time: "<<diff.count();
 	float* finalData = new float[3 * bmih.biHeight * bmih.biWidth];
 	//saveImage(*modifiedData, "result.bmp");
 	for (int i = 0, pos = 0; i < noThreads; ++i) {

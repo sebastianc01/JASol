@@ -8,6 +8,7 @@
 #include <fstream>
 #include <algorithm>
 #include <iterator>
+#include <chrono>
 #include "Colour.h"
 
 

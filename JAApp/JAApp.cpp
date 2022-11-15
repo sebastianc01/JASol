@@ -10,10 +10,8 @@
 int main(void)
 {
     
-    Bmp image("pingwin.bmp", 10);
-    //image.filterCpp();
-    //image.filterAsm();
-    image.filter(false);
+    Bmp image("asd.bmp", 10);
+    image.filter(true);
     return 0;
 
 }
