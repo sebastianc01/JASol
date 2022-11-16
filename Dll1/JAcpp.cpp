@@ -12,8 +12,13 @@ void laplaceFilter(unsigned char* data, unsigned char* modifiedData, unsigned ch
 	
 
 	for (int i = 0; i < 3 * noRows * width; ++i) {
-		modifiedData[i] = 
+		/*if (position > 30) {
+			std::cout << "here";
+		}*/
+		int dataArg = position * width + i;
+		modifiedData[i] = data[3 * position * width + i]; //works fine
 	}
+	return;
 	for (size_t H = 0; H < noRows; ++H) {
 		for (size_t W = 0; W < width; ++W) {
 			for (int i = 0; i < 3; ++i) {
@@ -30,12 +35,12 @@ void laplaceFilter(unsigned char* data, unsigned char* modifiedData, unsigned ch
 								if ((H + h) * width + (W + w) + i < 0 || (H + h) * width + (W + w) + i > 3 * noRows * width) {
 									std::cout << "Nieprawidlowy adres modifiedData.";
 								}
-								if (noRows * position * width + (H + h) * width + (W + w) + i <0|| noRows * position * width + (H + h) * width + (W + w) + i>width*height*3) {
+								if (position * width + (H + h) * width + (W + w) + i <0|| position * width + (H + h) * width + (W + w) + i>width*height*3) {
 									std::cout << "Nieprawidlowy adres data.";
 								}
 								modifiedData[(H + h) * width + (W + w) + i] =
 									modifiedData[(H + h) * width + (W + w) + i]
-									+ (data[noRows * position * width + (H + h) * width + (W + w) + i]
+									+ (data[position * width + (H + h) * width + (W + w) + i]
 									* mask[h * 3 + w + 3 + 1]); //+1, because w starts with value -1, +3 because h starts with value -1
 							}
 						}

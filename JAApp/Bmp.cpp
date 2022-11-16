@@ -62,24 +62,24 @@ void Bmp::filter(bool cpp) {
 	BOOL fFreeResult;
 	std::chrono::time_point<std::chrono::high_resolution_clock> start;
 	std::chrono::time_point<std::chrono::high_resolution_clock> end;
+	int position = 0;
 	if (hinstLib) {
 		if (cpp) {
 			laplaceCpp laplace = (laplaceCpp)GetProcAddress(hinstLib, "laplaceFilter");
 			if (laplace) {
 				//laplace(bmih.biWidth, bmih.biHeight, noThreads, 5, data, std::ref(modifiedData), mask);
+				start = std::chrono::high_resolution_clock::now();
 				for (int i = 0; i < noThreads; ++i) {
+					//laplace(bmih.biWidth, bmih.biHeight, noThreads, i, data, *modifiedData, mask);
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
 					modifiedData[i] = new unsigned char[3 * noRows * bmih.biWidth];
 					for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
 						modifiedData[i][k] = 0;
 					}
-				}
-				start = std::chrono::high_resolution_clock::now();
-				for (int i = 0; i < noThreads; ++i) {
-					//laplace(bmih.biWidth, bmih.biHeight, noThreads, i, data, *modifiedData, mask);
-					
-					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, i);
+					std::cout << "Thread number: " << i << ", position: " << position << std::endl;
+					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, position);
 					vecOfThreads.emplace_back(std::move(a));
+					position += noRows;
 					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
 					vecOfThreads.emplace_back(std::move(a));*/
 				}
@@ -90,6 +90,7 @@ void Bmp::filter(bool cpp) {
 			if (laplace) {
 				for (int i = 0; i < noThreads; ++i) {
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
+					position += noRows;
 					modifiedData[i] = new unsigned char[3 * noRows * bmih.biWidth];
 					for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
 						modifiedData[i][k] = 0;
@@ -97,7 +98,7 @@ void Bmp::filter(bool cpp) {
 				}
 				start = std::chrono::high_resolution_clock::now();
 				for (int i = 0; i < noThreads; ++i) {
-					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, i);
+					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, position);
 					vecOfThreads.emplace_back(std::move(a));
 					/*for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
 						std::cout << modifiedData[i][k]<<"  ";
