@@ -3,6 +3,7 @@ imageHeight DD ?
 imageWidth DD ?
 noThreads DD ?
 position DD ?
+noRows DD ?
 dataAddress DQ ?
 modifiedDataAddress DQ ?
 maskAddress DQ ?
@@ -16,6 +17,7 @@ laplaceFilter proc
 ; Address of the mask is stored in R8
 ; Image width is stored in R9
 
+;Saving data
 	push    rbp
     mov     rbp, rsp
 	mov dataAddress, rcx
@@ -28,6 +30,30 @@ laplaceFilter proc
 	mov noThreads, eax
 	mov eax, DWORD PTR [rbp+64] ;	Position is stored in eax
 	mov position, eax
+	mov eax, DWORD PTR [rbp+72] ; Number of rows is stored in eax
+	mov noRows, eax
+;Saving data
+
+;Trying to copy an image
+	;Setting registers
+	mov rbx, 0						; counter of the data, it would be an address of the proper array element
+	mov rcx, 0						; counter of the modified data, it would be an address of the proper array element
+	mov rdx, dataAddress			; data address is stored in rdx anyway, just to emphasise it
+	mov r8, modifiedDataAddress		; modified data address is stored in r8
+	;Setting registers
+	startL:
+
+
+	incorrectData:
+	inc rbx							; incrementing address of the data
+	inc rcx							; incrementing address of the modified data
+	;Checking values in rbx and rcx, when they are too big exiting loop
+	mov rax, 0
+
+	;Checking values in rbx and rcx, when they are too big exiting loop
+	jmp startL
+	endL:
+;Trying to copy an image
 
 	mov rcx, modifiedDataAddress	; modifiedDataAddress is now stored in rcx
 	movss xmm0, [const]
@@ -70,6 +96,8 @@ endA:
 	;mov rax, QWORD PTR [rbp+24]
 	;mov data, rax
 	;mov rbx, QWORD PTR [rsp - data]
+
+
 	mov rsp, rbp
 	pop rbp
 	ret

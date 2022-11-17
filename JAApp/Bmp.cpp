@@ -76,7 +76,7 @@ void Bmp::filter(bool cpp) {
 					for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
 						modifiedData[i][k] = 0;
 					}
-					std::cout << "Thread number: " << i << ", position: " << position << std::endl;
+					//std::cout << "Thread number: " << i << ", position: " << position << std::endl;
 					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, position);
 					vecOfThreads.emplace_back(std::move(a));
 					position += noRows;
@@ -88,22 +88,18 @@ void Bmp::filter(bool cpp) {
 		else {
 			laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceFilter");
 			if (laplace) {
+				start = std::chrono::high_resolution_clock::now();
 				for (int i = 0; i < noThreads; ++i) {
+					//laplace(bmih.biWidth, bmih.biHeight, noThreads, i, data, *modifiedData, mask);
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
-					position += noRows;
 					modifiedData[i] = new unsigned char[3 * noRows * bmih.biWidth];
 					for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
 						modifiedData[i][k] = 0;
 					}
-				}
-				start = std::chrono::high_resolution_clock::now();
-				for (int i = 0; i < noThreads; ++i) {
-					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, position);
+					//std::cout << "Thread number: " << i << ", position: " << position << std::endl;
+					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, position, noRows);
 					vecOfThreads.emplace_back(std::move(a));
-					/*for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
-						std::cout << modifiedData[i][k]<<"  ";
-					}
-					std::cout << std::endl;*/
+					position += noRows;
 					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
 					vecOfThreads.emplace_back(std::move(a));*/
 				}

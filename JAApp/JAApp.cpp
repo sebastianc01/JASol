@@ -10,8 +10,8 @@
 int main(void)
 {
     
-    Bmp image("asd.bmp", 2);
-    image.filter(true);
+    Bmp image("asd.bmp", 10);
+    image.filter(false);
     return 0;
 
 }

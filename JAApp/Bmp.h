@@ -16,8 +16,8 @@
 #define FileHeaderSize 14
 #define InfoHeaderSize 40
 
-typedef float*(_stdcall* laplaceAsm)(unsigned char*, unsigned char*, unsigned char* , int, int, const int, int);
-typedef void(*laplaceCpp)(unsigned char*, unsigned char*, unsigned char* , int, int, const int, int, int);
+typedef void*(_stdcall* laplaceAsm)(unsigned char*, unsigned char*, unsigned char* , int, int, const int, int, int);
+typedef void(*laplaceCpp)(unsigned char*, unsigned char*, unsigned char* , int, int, const int, int);
 
 class Bmp {
 	//size_t width;
