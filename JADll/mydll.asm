@@ -50,8 +50,8 @@ laplaceFilter proc
 	mul r10							; multiply the result by r10 (3 colours in all pixels)
 	mov r10, rax					; move the result to r10, the beginning of the data will be stored there
 	;Calculating thr beginning position of the data ?
-	push r12						;r12 would contain height between 0 and 2, size of the mask
-	push r13						;r13 would contain width between 0 and 2, size of the mask
+	push r12						;r12 would contain height between -1 and 1, size of the mask
+	push r13						;r13 would contain width between -1 and 1, size of the mask
 	push r14						;
 	push r15						;
 	mov r12, 0
@@ -89,6 +89,30 @@ laplaceFilter proc
 	sub rcx, r13					; substract rcx by the number of the current width of the mask, now in rcx is stored just current width
 	add rax, rdx					; add colour number, now rax contains 3*(W+w) + 1
 	add rax, r14					; now rax contains 3*(H+h)*imageWidth + 3*(W+w) + 1
+	cmp r12, -1						; compare current width of the mask with -1
+	je maskFirst					; jump to maskFirst, data correct
+	cmp r12, 0						; compare current width of the mask with 0
+	je maskSecond					; jump to maskSecond
+	cmp r12, 1						; compare current width of the mask with 1
+	je maskThird					; jump to maskThird
+	jmp nextMaskColumn				; data incorrect, out of the array
+	;Place data in the correct position in the XMM registers
+	;mask's width equal to -1
+	maskFirst:
+	;											@todo: place data into xmm
+	jmp nextMaskColumn
+	;mask's width equal to -1
+	;mask's width equal to 0
+	maskSecond:
+	;											@todo: place data into xmm
+	jmp nextMaskColumn
+	;mask's width equal to 0
+	;mask's width equal to 1
+	maskThird:
+	;											@todo: place data into xmm
+	jmp nextMaskRow
+	;mask's width equal to 1
+	;Place data in the correct position in the XMM registers
 
 	;Calculating the correct address of elements
 
