@@ -96,6 +96,12 @@ laplaceFilter proc
 	cmp r12, 1						; compare current width of the mask with 1
 	je maskThird					; jump to maskThird
 	jmp nextMaskColumn				; data incorrect, out of the array
+
+	;Calculating data inside xmm
+	calculate:
+
+
+	;Calculating data inside xmm
 	;Place data in the correct position in the XMM registers
 	;mask's width equal to -1
 	maskFirst:

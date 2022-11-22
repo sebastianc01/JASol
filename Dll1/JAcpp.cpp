@@ -17,28 +17,30 @@ void laplaceFilter(unsigned char* data, unsigned char* modifiedData, unsigned ch
 	//}
 	//return;
 	for (size_t H = 0; H < noRows; ++H) {
-		for (size_t W = 0; W < width; ++W) {
-			for (int i = 0; i < 3; ++i) {
-				for (int h = -1; h <= 1; ++h) {
-					if (h + H >= 0 && h + H < height) {
-						for (int w = -1; w <= 1; ++w) {
-							if (w + W >= 0 && w + W < width) {
-								//int modDataArg = (H + h) * 3 * width + (W + w) * 3 + i;
-								//int dataArg = 3 * noRows * position * width + (H + h) * 3 * width + (W + w) * 3 + i;
-								//int maskArg = h * 3 + w + 3 + 1;
-								/*if (h * 3 + w + 3 + 1 < 0 || h * 3 + w + 3 + 1 > 8) {
-									std::cout << "Nieprawidlowwy adres maski.";
+		if (!(H == 0 && position == 0) && !(H == noRows - 1 && position + noRows == height)) {
+			for (size_t W = 1; W < width - 1; ++W) {
+				for (int i = 0; i < 3; ++i) {
+					for (int h = -1; h <= 1; ++h) {
+						if (h + H >= 0 && h + H < height) {
+							for (int w = -1; w <= 1; ++w) {
+								if (w + W >= 0 && w + W < width) {
+									//int modDataArg = (H + h) * 3 * width + (W + w) * 3 + i;
+									//int dataArg = 3 * noRows * position * width + (H + h) * 3 * width + (W + w) * 3 + i;
+									//int maskArg = h * 3 + w + 3 + 1;
+									/*if (h * 3 + w + 3 + 1 < 0 || h * 3 + w + 3 + 1 > 8) {
+										std::cout << "Nieprawidlowwy adres maski.";
+									}
+									if (3 * H * width + 3 * W + i < 0 || 3 * H * width + 3 * W + i > 3 * noRows * width) {
+										std::cout << "Nieprawidlowy adres modifiedData, max: " << 3 * noRows * width << ", curr: " << 3 * H * width + 3 * W + i << std::endl;
+									}
+									if (3 * position * width + 3 * (H + h) * width + 3 * (W + w) + i <0|| 3 * position * width + 3 * (H + h) * width + 3 * (W + w) + i>width*height*3) {
+										std::cout << "Nieprawidlowy adres data.";
+									}*/
+									modifiedData[3 * H * width + 3 * W + i] =
+										modifiedData[3 * H * width + 3 * W + i]
+										+ (data[3 * position * width + 3 * (H + h) * width + 3 * (W + w) + i]
+											* mask[h * 3 + w + 3 + 1]); //+1, because w starts with value -1, +3 because h starts with value -1
 								}
-								if (3 * H * width + 3 * W + i < 0 || 3 * H * width + 3 * W + i > 3 * noRows * width) {
-									std::cout << "Nieprawidlowy adres modifiedData, max: " << 3 * noRows * width << ", curr: " << 3 * H * width + 3 * W + i << std::endl;
-								}
-								if (3 * position * width + 3 * (H + h) * width + 3 * (W + w) + i <0|| 3 * position * width + 3 * (H + h) * width + 3 * (W + w) + i>width*height*3) {
-									std::cout << "Nieprawidlowy adres data.";
-								}*/
-								modifiedData[3 * H * width + 3 * W + i] =
-									modifiedData[3 * H * width + 3 * W + i]
-									+ (data[3 * position * width + 3 * (H + h) * width + 3 * (W + w) + i]
-									* mask[h * 3 + w + 3 + 1]); //+1, because w starts with value -1, +3 because h starts with value -1
 							}
 						}
 					}
@@ -46,6 +48,9 @@ void laplaceFilter(unsigned char* data, unsigned char* modifiedData, unsigned ch
 			}
 		}
 	}
+	/*modifiedData[3 * width * (noRows - 1) + 3 * 20 + 1] = 100;
+	modifiedData[3 * width * (noRows - 1) + 3 * 20 + 2] = 100;
+	modifiedData[3 * width * (noRows - 1) + 3 * 20 + 3] = 100;*/
 	//for (size_t H = position; H < height; H += noThreads) { //height of the whole image
 	//	for (size_t W = 0; W < width; ++W) { //width of the whole image
 	//		for (int i = 0; i < 3; ++i) { //considering 3 colours of every bit
