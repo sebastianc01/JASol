@@ -10,7 +10,7 @@
 int main(void)
 {
     
-    Bmp image("5.bmp", 10);
+    Bmp image("4.bmp", 10);
     image.filter(true);
     return 0;
 

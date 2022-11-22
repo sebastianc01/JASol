@@ -5,7 +5,9 @@ Bmp::Bmp(std::string file, int noThreads) {
 	this->noThreads = noThreads;
 }
 
-Bmp::~Bmp() {}
+Bmp::~Bmp() {
+	delete[] data;
+}
 
 void Bmp::readFile(std::string file, int noThreads) {
 	//FILE* f;
@@ -28,21 +30,33 @@ void Bmp::readFile(std::string file, int noThreads) {
 
 	const int paddingSize = (4 - (bmih.biWidth * 3) % 4) % 4;
 	//dt.resize(bmih.biWidth * bmih.biHeight);
-	data = new unsigned char[bmfh.bfSize - BMP_File_Header];
+	unsigned char *rawData = new unsigned char[bmfh.bfSize - BMP_File_Header];
+	//std::cout << bmfh.bfSize - BMP_File_Header << "  " << bmih.biWidth * bmih.biHeight * 3;
+	data = new unsigned char[bmih.biWidth * bmih.biHeight * 3];
+	f.read(reinterpret_cast<char*>(rawData), bmfh.bfSize - BMP_File_Header);
 	//fread(data, sizeof(float), bmfh.bfSize - BMP_File_Header, f);
-	for (int y = 0; y < bmih.biHeight; ++y) {
-		for (int x = 0; x < bmih.biWidth; ++x) {
-			unsigned char colour[3] = { 0,0,0 };
-			f.read(reinterpret_cast<char*>(colour), 3);
-			/*dt[y * bmih.biWidth + x].red = static_cast<float>(colour[2]) / 255.0f;
-			dt[y * bmih.biWidth + x].green = static_cast<float>(colour[1]) / 255.0f;
-			dt[y * bmih.biWidth + x].blue = static_cast<float>(colour[0]) / 255.0f;*/
-			data[3 * y * bmih.biWidth + 3 * x] = static_cast<unsigned char>(colour[2]);
-			data[3 * y * bmih.biWidth + 3 * x + 1] = static_cast<unsigned char>(colour[1]);
-			data[3 * y * bmih.biWidth + 3 * x + 2] = static_cast<unsigned char>(colour[0]);
+	for (int iRaw = 0, iFinal = 0; iFinal < bmih.biWidth * bmih.biHeight * 3; iFinal+=3, iRaw+=3) {
+		if (iFinal != 0 && iFinal % bmih.biWidth == 0) {
+			iRaw += paddingSize;
 		}
-		f.ignore(paddingSize);
+		data[iFinal] = rawData[iRaw + 2];
+		data[iFinal + 1] = rawData[iRaw + 1];
+		data[iFinal + 2] = rawData[iRaw];
 	}
+	//for (int y = 0; y < bmih.biHeight; ++y) {
+	//	for (int x = 0; x < bmih.biWidth; ++x) {
+	//		unsigned char colour[3] = { 0,0,0 };
+	//		f.read(reinterpret_cast<char*>(colour), 3);
+	//		/*dt[y * bmih.biWidth + x].red = static_cast<float>(colour[2]) / 255.0f;
+	//		dt[y * bmih.biWidth + x].green = static_cast<float>(colour[1]) / 255.0f;
+	//		dt[y * bmih.biWidth + x].blue = static_cast<float>(colour[0]) / 255.0f;*/
+	//		data[3 * y * bmih.biWidth + 3 * x] = static_cast<unsigned char>(colour[2]);
+	//		data[3 * y * bmih.biWidth + 3 * x + 1] = static_cast<unsigned char>(colour[1]);
+	//		data[3 * y * bmih.biWidth + 3 * x + 2] = static_cast<unsigned char>(colour[0]);
+	//	}
+	//	f.ignore(paddingSize);
+	//}
+	delete[] rawData;
 }
 
 
