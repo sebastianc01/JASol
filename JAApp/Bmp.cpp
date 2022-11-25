@@ -159,34 +159,54 @@ void Bmp::saveImage(unsigned char* modifiedData, const char* destinationFile) {
 	const int paddingSize = (4 - (bmih.biWidth * 3) % 4) % 4;
 	//BITMAPFILEHEADER bmfht = bmfh;
 	//BITMAPINFOHEADER bmiht = bmih;
-	const int fileSize = BMP_File_Header + 3 * bmih.biWidth * bmih.biHeight + 3 * bmih.biHeight;
-	dt.resize(bmih.biWidth * bmih.biHeight);
+	const int fileSize = BMP_File_Header + 3 * bmih.biWidth * bmih.biHeight + paddingSize * bmih.biHeight;
+	//dt.resize(bmih.biWidth * bmih.biHeight);
+	unsigned char *finalData = new unsigned char[bmfh.bfSize - BMP_File_Header];
 	//bmfht.bfSize = BMP_File_Header + 3 * bmih.biWidth * bmih.biHeight + 3 * bmih.biHeight;
 	header[2] = fileSize;
 	header[3] = fileSize >> 8;
 	header[4] = fileSize >> 16;
 	header[5] = fileSize >> 24;
-	for (int y = 0; y < bmih.biHeight; ++y) {
-		for (int x = 0; x < bmih.biWidth; ++x) {
-			//std::cout << data[3 * bmih.biWidth * y + 3 * x] << "  " << data[3 * bmih.biWidth * y + 3 * x+1] << "  " << data[3 * bmih.biWidth * y + 3 * x +2] << std::endl;
-			setColour(Colour(modifiedData[3 * bmih.biWidth * y + 3 * x], modifiedData[3 * bmih.biWidth * y + 3 * x + 1], modifiedData[3 * bmih.biWidth * y + 3 * x + 2]), x, y);
-			//setColour(Colour((float)x / (float)bmih.biWidth, 1.0f - ((float)x / (float)bmih.biWidth), (float)y / (float)bmih.biHeight), x, y);
+	//std::cout<<"curr: " << bmfh.bfSize - BMP_File_Header << ", new: "<<
+	for (int iData = 0, iOut = 0; iData < 3 * bmih.biWidth * bmih.biHeight; iData += 3, iOut += 3) {
+		if (iData != 0 && iData == 3 * (iData / 3) && iData / 3 % bmih.biWidth == 0) {
+			for (int i = 0; i < paddingSize; ++i, ++iOut) {
+				if (iOut >= 231560) { 
+					std::cout << "l"; }
+				finalData[iOut] = 0;
+			}
+		}
+		else {
+			finalData[iOut] = modifiedData[iData + 2];
+			finalData[iOut + 1] = modifiedData[iData + 1];
+			finalData[iOut + 2] = modifiedData[iData];
 		}
 	}
-	
-	//setColour(Colour(0, 0, 55), 0, 100);
+	//finalData[] 
 	file.write(reinterpret_cast<char*>(header), BMP_File_Header);
-	for (int y=0; y < bmih.biHeight; ++y) {
-		for (int x = 0; x < bmih.biWidth; ++x) {
-			unsigned char r = static_cast<unsigned char>(getColour(x, y).red);
-			unsigned char g = static_cast<unsigned char>(getColour(x, y).green);
-			unsigned char b = static_cast<unsigned char>(getColour(x, y).blue);
-			unsigned char c[] = {b, g, r};
-			file.write(reinterpret_cast<char*>(c), 3);
-		}
-		file.write(reinterpret_cast<char*>(padding), paddingSize);
-	}
+	file.write(reinterpret_cast<char*>(finalData), bmfh.bfSize - BMP_File_Header);
+	//for (int y = 0; y < bmih.biHeight; ++y) {
+	//	for (int x = 0; x < bmih.biWidth; ++x) {
+	//		//std::cout << data[3 * bmih.biWidth * y + 3 * x] << "  " << data[3 * bmih.biWidth * y + 3 * x+1] << "  " << data[3 * bmih.biWidth * y + 3 * x +2] << std::endl;
+	//		setColour(Colour(modifiedData[3 * bmih.biWidth * y + 3 * x], modifiedData[3 * bmih.biWidth * y + 3 * x + 1], modifiedData[3 * bmih.biWidth * y + 3 * x + 2]), x, y);
+	//		//setColour(Colour((float)x / (float)bmih.biWidth, 1.0f - ((float)x / (float)bmih.biWidth), (float)y / (float)bmih.biHeight), x, y);
+	//	}
+	//}
+	//
+	////setColour(Colour(0, 0, 55), 0, 100);
+	//file.write(reinterpret_cast<char*>(header), BMP_File_Header);
+	//for (int y=0; y < bmih.biHeight; ++y) {
+	//	for (int x = 0; x < bmih.biWidth; ++x) {
+	//		unsigned char r = static_cast<unsigned char>(getColour(x, y).red);
+	//		unsigned char g = static_cast<unsigned char>(getColour(x, y).green);
+	//		unsigned char b = static_cast<unsigned char>(getColour(x, y).blue);
+	//		unsigned char c[] = {b, g, r};
+	//		file.write(reinterpret_cast<char*>(c), 3);
+	//	}
+	//	file.write(reinterpret_cast<char*>(padding), paddingSize);
+	//}
 	file.close();
+	delete[] finalData;
 }
 
 Colour Bmp::getColour(int x, int y) const
