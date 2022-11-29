@@ -100,7 +100,8 @@ void Bmp::filter(bool cpp) {
 			}
 		}
 		else {
-			laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceFilter");
+			//laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceFilter");
+			TestAsm laplace = (TestAsm)GetProcAddress(hinstLib, "TestAsm");
 			if (laplace) {
 				start = std::chrono::high_resolution_clock::now();
 				for (int i = 0; i < noThreads; ++i) {
@@ -167,14 +168,12 @@ void Bmp::saveImage(unsigned char* modifiedData, const char* destinationFile) {
 	header[3] = fileSize >> 8;
 	header[4] = fileSize >> 16;
 	header[5] = fileSize >> 24;
-	//std::cout<<"curr: " << bmfh.bfSize - BMP_File_Header << ", new: "<<
 	for (int iData = 0, iOut = 0; iData < 3 * bmih.biWidth * bmih.biHeight; iData += 3, iOut += 3) {
 		if (iData != 0 && iData == 3 * (iData / 3) && iData / 3 % bmih.biWidth == 0) {
-			for (int i = 0; i < paddingSize; ++i, ++iOut) {
-				if (iOut >= 231560) { 
-					std::cout << "l"; }
+			/*for (int i = 0; i < paddingSize; ++i, ++iOut) {
 				finalData[iOut] = 0;
-			}
+			}*/
+			iOut += paddingSize;
 		}
 		else {
 			finalData[iOut] = modifiedData[iData + 2];
@@ -182,43 +181,9 @@ void Bmp::saveImage(unsigned char* modifiedData, const char* destinationFile) {
 			finalData[iOut + 2] = modifiedData[iData];
 		}
 	}
-	//finalData[] 
 	file.write(reinterpret_cast<char*>(header), BMP_File_Header);
 	file.write(reinterpret_cast<char*>(finalData), bmfh.bfSize - BMP_File_Header);
-	//for (int y = 0; y < bmih.biHeight; ++y) {
-	//	for (int x = 0; x < bmih.biWidth; ++x) {
-	//		//std::cout << data[3 * bmih.biWidth * y + 3 * x] << "  " << data[3 * bmih.biWidth * y + 3 * x+1] << "  " << data[3 * bmih.biWidth * y + 3 * x +2] << std::endl;
-	//		setColour(Colour(modifiedData[3 * bmih.biWidth * y + 3 * x], modifiedData[3 * bmih.biWidth * y + 3 * x + 1], modifiedData[3 * bmih.biWidth * y + 3 * x + 2]), x, y);
-	//		//setColour(Colour((float)x / (float)bmih.biWidth, 1.0f - ((float)x / (float)bmih.biWidth), (float)y / (float)bmih.biHeight), x, y);
-	//	}
-	//}
-	//
-	////setColour(Colour(0, 0, 55), 0, 100);
-	//file.write(reinterpret_cast<char*>(header), BMP_File_Header);
-	//for (int y=0; y < bmih.biHeight; ++y) {
-	//	for (int x = 0; x < bmih.biWidth; ++x) {
-	//		unsigned char r = static_cast<unsigned char>(getColour(x, y).red);
-	//		unsigned char g = static_cast<unsigned char>(getColour(x, y).green);
-	//		unsigned char b = static_cast<unsigned char>(getColour(x, y).blue);
-	//		unsigned char c[] = {b, g, r};
-	//		file.write(reinterpret_cast<char*>(c), 3);
-	//	}
-	//	file.write(reinterpret_cast<char*>(padding), paddingSize);
-	//}
 	file.close();
 	delete[] finalData;
 }
-
-Colour Bmp::getColour(int x, int y) const
-{
-	return dt.at(y * bmih.biWidth + x);
-}
-
-void Bmp::setColour(const Colour& colour, int x, int y)
-{
-	dt.at(y * bmih.biWidth + x).red = colour.red;
-	dt.at(y * bmih.biWidth + x).blue = colour.blue;
-	dt.at(y * bmih.biWidth + x).green = colour.green;
-}
-
 

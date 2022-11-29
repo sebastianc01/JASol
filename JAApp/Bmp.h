@@ -9,7 +9,6 @@
 #include <algorithm>
 #include <iterator>
 #include <chrono>
-#include "Colour.h"
 
 
 #define BMP_File_Header 54
@@ -17,6 +16,7 @@
 #define InfoHeaderSize 40
 
 typedef void*(_stdcall* laplaceAsm)(unsigned char*, unsigned char*, unsigned char* , int, int, const int, int, int);
+typedef void*(_stdcall* TestAsm)(unsigned char*, unsigned char*, unsigned char*, int, int, const int, int, int);
 typedef void(*laplaceCpp)(unsigned char*, unsigned char*, unsigned char* , int, int, const int, int);
 
 class Bmp {
@@ -28,13 +28,10 @@ class Bmp {
 	int noThreads;
 	BITMAPINFOHEADER bmih;
 	BITMAPFILEHEADER bmfh;
-	std::vector<Colour> dt;
 public:
 	Bmp(std::string file, int noThreads);
 	~Bmp();
 	void readFile(std::string file, int noThreads);
 	void filter(bool cpp);
 	void saveImage(unsigned char* modifiedData, const char* destinationFile);
-	Colour getColour(int x, int y) const;
-	void setColour(const Colour& colour, int x, int y);
 };

@@ -223,4 +223,28 @@ endA:
 	pop rbp
 	ret
 laplaceFilter endp
+
+TestAsm proc
+;Saving data
+	push    rbp
+    mov     rbp, rsp
+	mov dataAddress, rcx
+	mov modifiedDataAddress, rdx
+	mov maskAddress, r8
+	mov imageWidth, r9d
+	mov eax, DWORD PTR [rbp+48] ;	Image height is stored in eax
+	mov imageHeight, eax
+	mov eax, DWORD PTR [rbp+56] ;	Number of threads is stored in eax
+	mov noThreads, eax
+	mov eax, DWORD PTR [rbp+64] ;	Position is stored in eax
+	mov position, eax
+	mov eax, DWORD PTR [rbp+72] ; Number of rows is stored in eax
+	mov noRows, eax
+;Saving data
+	mov eax, DWORD PTR [dataAddress]	; move first element of the array to the eax
+	cvtsi2ss xmm0, eax					; convert 32-bit integer to 32-bit float
+	vbroadcastss xmm1, DWORD PTR [dataAddress]
+	ret
+TestAsm endp
+
 END

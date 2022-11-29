@@ -9,9 +9,7 @@
 
 int main(void)
 {
-    
     Bmp image("4.bmp", 10);
     image.filter(true);
     return 0;
-
 }
