@@ -6,7 +6,7 @@ position DD ?
 noRows DD ?
 dataAddress DQ ?
 modifiedDataAddress DQ ?
-maskAddress DQ ?
+paddingSize DD ?
 const dd 0.6
 
 .CODE
@@ -14,7 +14,7 @@ const dd 0.6
 laplaceFilter proc
 ; Address of the data is stored in RCX
 ; Address of the modified data is stored in RDX
-; Address of the mask is stored in R8
+; Padding size is stored in R8
 ; Image width is stored in R9
 
 ;Saving data
@@ -22,7 +22,7 @@ laplaceFilter proc
     mov     rbp, rsp
 	mov dataAddress, rcx
 	mov modifiedDataAddress, rdx
-	mov maskAddress, r8
+	mov paddingSize, r8d
 	mov imageWidth, r9d
 	mov eax, DWORD PTR [rbp+48] ;	Image height is stored in eax
 	mov imageHeight, eax
@@ -230,7 +230,7 @@ TestAsm proc
     mov     rbp, rsp
 	mov dataAddress, rcx
 	mov modifiedDataAddress, rdx
-	mov maskAddress, r8
+	mov paddingSize, r8d
 	mov imageWidth, r9d
 	mov eax, DWORD PTR [rbp+48] ;	Image height is stored in eax
 	mov imageHeight, eax

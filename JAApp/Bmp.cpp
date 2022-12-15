@@ -30,19 +30,10 @@ void Bmp::readFile(std::string file, int noThreads) {
 
 	const int paddingSize = (4 - (bmih.biWidth * 3) % 4) % 4;
 	//dt.resize(bmih.biWidth * bmih.biHeight);
-	unsigned char *rawData = new unsigned char[bmfh.bfSize - BMP_File_Header];
 	//std::cout << bmfh.bfSize - BMP_File_Header << "  " << bmih.biWidth * bmih.biHeight * 3;
-	data = new unsigned char[bmih.biWidth * bmih.biHeight * 3];
-	f.read(reinterpret_cast<char*>(rawData), bmfh.bfSize - BMP_File_Header);
+	data = new unsigned char[3 * bmih.biHeight * (bmih.biWidth + paddingSize)];
+	f.read(reinterpret_cast<char*>(data), 3 * bmih.biHeight * (bmih.biWidth + paddingSize));
 	//fread(data, sizeof(float), bmfh.bfSize - BMP_File_Header, f);
-	for (int iRaw = 0, iFinal = 0; iFinal < bmih.biWidth * bmih.biHeight * 3; iFinal+=3, iRaw+=3) {
-		if (iFinal != 0 && iFinal % bmih.biWidth == 0) {
-			iRaw += paddingSize;
-		}
-		data[iFinal] = rawData[iRaw + 2];
-		data[iFinal + 1] = rawData[iRaw + 1];
-		data[iFinal + 2] = rawData[iRaw];
-	}
 	//for (int y = 0; y < bmih.biHeight; ++y) {
 	//	for (int x = 0; x < bmih.biWidth; ++x) {
 	//		unsigned char colour[3] = { 0,0,0 };
@@ -56,13 +47,11 @@ void Bmp::readFile(std::string file, int noThreads) {
 	//	}
 	//	f.ignore(paddingSize);
 	//}
-	delete[] rawData;
 }
 
 
 void Bmp::filter(bool cpp) {
 	std::vector<std::thread> vecOfThreads;
-	unsigned char** modifiedData = new unsigned char*[noThreads];
 	/*for (int i = 0; i < noThreads; ++i) {
 		modifiedData[i] = new float [bmih.biHeight / noThreads];
 	}*/
@@ -70,9 +59,14 @@ void Bmp::filter(bool cpp) {
 	/*for (int i = 0; i < 3 * bmih.biWidth * bmih.biHeight; ++i) {
 		modifiedData[i] = 0;
 	}*/
-
+	const int paddingSize = (4 - (bmih.biWidth) % 4) % 4;
 	HINSTANCE hinstLib = cpp ? LoadLibrary(TEXT("Dll1.dll")) : LoadLibrary(TEXT("JADll.dll"));
-	unsigned char mask[] = { 1, 1, 1, 1, -8, 1, 1, 1, 1 };
+	unsigned char* modifiedData = new unsigned char[3 * bmih.biHeight * (bmih.biWidth + paddingSize)];
+	for (int i = 0; i < 3 * bmih.biHeight * (bmih.biWidth + paddingSize); ++i) {
+		modifiedData[i] = 0;
+	}
+	std::cout << bmfh.bfSize - BMP_File_Header;
+	//unsigned char mask[] = { 1, 1, 1, 1, -8, 1, 1, 1, 1 };
 	BOOL fFreeResult;
 	std::chrono::time_point<std::chrono::high_resolution_clock> start;
 	std::chrono::time_point<std::chrono::high_resolution_clock> end;
@@ -86,12 +80,8 @@ void Bmp::filter(bool cpp) {
 				for (int i = 0; i < noThreads; ++i) {
 					//laplace(bmih.biWidth, bmih.biHeight, noThreads, i, data, *modifiedData, mask);
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
-					modifiedData[i] = new unsigned char[3 * noRows * bmih.biWidth];
-					for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
-						modifiedData[i][k] = 0;
-					}
 					//std::cout << "Thread number: " << i << ", position: " << position << std::endl;
-					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, position);
+					std::thread a(laplace, data, modifiedData, paddingSize, bmih.biWidth, bmih.biHeight, noThreads, position);
 					vecOfThreads.emplace_back(std::move(a));
 					position += noRows;
 					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
@@ -107,12 +97,8 @@ void Bmp::filter(bool cpp) {
 				for (int i = 0; i < noThreads; ++i) {
 					//laplace(bmih.biWidth, bmih.biHeight, noThreads, i, data, *modifiedData, mask);
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
-					modifiedData[i] = new unsigned char[3 * noRows * bmih.biWidth];
-					for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k) {
-						modifiedData[i][k] = 0;
-					}
 					//std::cout << "Thread number: " << i << ", position: " << position << std::endl;
-					std::thread a(laplace, data, modifiedData[i], mask, bmih.biWidth, bmih.biHeight, noThreads, position, noRows);
+					std::thread a(laplace, data, modifiedData, paddingSize, bmih.biWidth, bmih.biHeight, noThreads, position, noRows);
 					vecOfThreads.emplace_back(std::move(a));
 					position += noRows;
 					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
@@ -133,20 +119,8 @@ void Bmp::filter(bool cpp) {
 	}
 	std::chrono::duration<double> diff = end - start;
 	std::cout<<"Time: "<<diff.count();
-	unsigned char* finalData = new unsigned char[3 * bmih.biHeight * bmih.biWidth];
-	//saveImage(*modifiedData, "result.bmp");
-	for (int i = 0, pos = 0; i < noThreads; ++i) {
-		int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
-		//pos = pos + 3 * noRows * bmih.biWidth;
-		//std::copy(std::begin(modifiedData[i]), std::end(modifiedData[i]), std::end(finalData));
-		for (int k = 0; k < 3 * noRows * bmih.biWidth; ++k, ++pos) {
-			finalData[pos] = modifiedData[i][k];
-		}
-		delete[] modifiedData[i];
-	}
-	saveImage(finalData, "result.bmp");
+	saveImage(modifiedData, "result.bmp");
 	delete[] modifiedData;
-	delete[] finalData;
 }
 
 void Bmp::saveImage(unsigned char* modifiedData, const char* destinationFile) {
@@ -162,28 +136,13 @@ void Bmp::saveImage(unsigned char* modifiedData, const char* destinationFile) {
 	//BITMAPINFOHEADER bmiht = bmih;
 	const int fileSize = BMP_File_Header + 3 * bmih.biWidth * bmih.biHeight + paddingSize * bmih.biHeight;
 	//dt.resize(bmih.biWidth * bmih.biHeight);
-	unsigned char *finalData = new unsigned char[bmfh.bfSize - BMP_File_Header];
 	//bmfht.bfSize = BMP_File_Header + 3 * bmih.biWidth * bmih.biHeight + 3 * bmih.biHeight;
 	header[2] = fileSize;
 	header[3] = fileSize >> 8;
 	header[4] = fileSize >> 16;
 	header[5] = fileSize >> 24;
-	for (int iData = 0, iOut = 0; iData < 3 * bmih.biWidth * bmih.biHeight; iData += 3, iOut += 3) {
-		if (iData != 0 && iData == 3 * (iData / 3) && iData / 3 % bmih.biWidth == 0) {
-			/*for (int i = 0; i < paddingSize; ++i, ++iOut) {
-				finalData[iOut] = 0;
-			}*/
-			iOut += paddingSize;
-		}
-		else {
-			finalData[iOut] = modifiedData[iData + 2];
-			finalData[iOut + 1] = modifiedData[iData + 1];
-			finalData[iOut + 2] = modifiedData[iData];
-		}
-	}
 	file.write(reinterpret_cast<char*>(header), BMP_File_Header);
-	file.write(reinterpret_cast<char*>(finalData), bmfh.bfSize - BMP_File_Header);
+	file.write(reinterpret_cast<char*>(modifiedData), 3 * bmih.biHeight * (bmih.biWidth + paddingSize));
 	file.close();
-	delete[] finalData;
 }
 
