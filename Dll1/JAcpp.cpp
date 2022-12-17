@@ -89,9 +89,6 @@ void laplaceFilter(unsigned char* data, unsigned char* modifiedData, int padding
 			modifiedData[3 * i * width + 3 * w + 2] = position + 2.0f;
 		}
 	}*/
-	int prev=0;
-	/*paddingSize--;
-	paddingSize--;*/
 	for (int H = position; H <  position + noRows; ++H) {
 		if (!(H == 0 || H == height - 1)) {
 			for (int W = 1; W < width - 1; ++W) {
@@ -106,16 +103,12 @@ void laplaceFilter(unsigned char* data, unsigned char* modifiedData, int padding
 						data[3 * (H + 1) * (width + paddingSize) + 3 * (W - 1) + i] * (-1) +
 						data[3 * (H + 1) * (width + paddingSize) + 3 * W + i] * (-1) +
 						data[3 * (H + 1) * (width + paddingSize) + 3 * (W + 1) + i] * (-1);
-					if (3 * H * (width + paddingSize) + 3 * W + i != prev+1) {
-						std::cout << "3 * H * (width + paddingSize) + 3 * W + i nie jest rowne poprzedniemu elementowi - 1! 3 * H * (width + paddingSize) + 3 * W + i: " << 3 * H * (width + paddingSize) + 3 * W + i << ", prev: " << prev << std::endl;
-					}
 					/*if (W == 50) {
 						modifiedData[3 * H * (width + paddingSize) + 3 * W + i] = 200;
 					}
 					if (W == 100) {
 						modifiedData[3 * H * (width + paddingSize) + 3 * W + i] = 200;
 					}*/
-					prev = 3 * H * (width + paddingSize) + 3 * W + i;
 					if (H < 10) {
 						//std::cout << "H: " << H << ", W: " << W << ", arg: " << 3 * H * (width + paddingSize) + 3 * W + i << ", padding size: " << paddingSize<< std::endl;
 					}

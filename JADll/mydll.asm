@@ -9,6 +9,7 @@ modifiedDataAddress DQ ?
 paddingSize DD ?
 const dd 0.6
 
+
 .CODE
 
 laplaceFilter proc
@@ -33,6 +34,14 @@ laplaceFilter proc
 	mov eax, DWORD PTR [rbp+72] ; Number of rows is stored in eax
 	mov noRows, eax
 ;Saving data
+
+;Set correct mask in xmm2
+	mov r8, 00000000000001h
+	movq xmm2, r8						
+	mov r8, 010101F601010101h
+	pinsrq xmm2, r8, 1	
+	;movdqu xmm2, 0101010101010101h
+;Set correct mask in xmm2
 
 ;Trying to copy an image
 	;Setting registers
@@ -225,6 +234,38 @@ endA:
 laplaceFilter endp
 
 TestAsm proc
+
+;Save mask values in xmm1
+	mov r8, 01010101010101h
+	movq xmm2, r8						
+	;mov r8, 0101010101010101h
+	pinsrq xmm2, r8, 1	
+	;movdqu xmm2, 0101010101010101h
+	mov al, 'G'
+	mov byte ptr [dataAddress + 656], al
+	pinsrb xmm3, byte ptr [dataAddress + 656], 2
+	mov al, 'J'
+	mov byte ptr [dataAddress + 656], al
+	pinsrb xmm3, byte ptr [dataAddress + 656], 11
+	pinsrb xmm3, byte ptr [dataAddress + 656], 1
+	pinsrb xmm3, byte ptr [dataAddress + 656], 3
+	pinsrb xmm3, byte ptr [dataAddress + 656], 4
+	pinsrb xmm3, byte ptr [dataAddress + 656], 5
+	pinsrb xmm3, byte ptr [dataAddress + 656], 6
+	pinsrb xmm3, byte ptr [dataAddress + 656], 7
+	pinsrb xmm3, byte ptr [dataAddress + 656], 8
+	pinsrb xmm3, byte ptr [dataAddress + 656], 10
+	pinsrb xmm3, byte ptr [dataAddress + 656], 9
+	pinsrb xmm3, byte ptr [dataAddress + 656], 12
+	pinsrb xmm3, byte ptr [dataAddress + 656], 13
+	pinsrb xmm3, byte ptr [dataAddress + 656], 14
+	pinsrb xmm3, byte ptr [dataAddress + 656], 15
+	pinsrb xmm3, byte ptr [dataAddress + 656], 0
+	pinsrb xmm3, byte ptr [dataAddress + 656], 16
+	pmaddubsw xmm2, xmm3
+
+	pextrb byte ptr [dataAddress], xmm3, 2
+;Save mask values in xmm1
 ;Saving data
 	push    rbp
     mov     rbp, rsp

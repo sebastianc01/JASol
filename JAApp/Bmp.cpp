@@ -91,7 +91,7 @@ void Bmp::filter(bool cpp) {
 		}
 		else {
 			//laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceFilter");
-			TestAsm laplace = (TestAsm)GetProcAddress(hinstLib, "TestAsm");
+			laplaceAsm laplace = (laplaceAsm)GetProcAddress(hinstLib, "laplaceAsm");
 			if (laplace) {
 				start = std::chrono::high_resolution_clock::now();
 				for (int i = 0; i < noThreads; ++i) {
