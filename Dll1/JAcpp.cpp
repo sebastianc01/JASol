@@ -7,8 +7,7 @@
 #include <iostream>
 #include "JAcpp.h"
 
-void laplaceFilter(unsigned char* data, unsigned char* modifiedData, int paddingSize, int width, int height, const int noThreads, int position) {
-	const int noRows = height - (noThreads * (height / noThreads)) > position ? height / noThreads + 1 : height / noThreads;
+void laplaceFilter(unsigned char* data, unsigned char* modifiedData, int paddingSize, int width, int height, const int noThreads, int position, const int noRows) {
 	int mask;
 	//for (int i = 0; i < 3 * noRows * width; ++i) {
 	//	int dataArg = position * width + i;

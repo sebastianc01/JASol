@@ -17,7 +17,7 @@
 
 typedef void*(_stdcall* laplaceAsm)(unsigned char*, unsigned char*, int, int, int, const int, int, int);
 typedef void*(_stdcall* TestAsm)(unsigned char*, unsigned char*, int, int, int, const int, int, int);
-typedef void(*laplaceCpp)(unsigned char*, unsigned char*, int, int, int, const int, int);
+typedef void(*laplaceCpp)(unsigned char*, unsigned char*, int, int, int, const int, int, const int);
 
 class Bmp {
 	//size_t width;

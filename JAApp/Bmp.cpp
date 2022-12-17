@@ -81,7 +81,7 @@ void Bmp::filter(bool cpp) {
 					//laplace(bmih.biWidth, bmih.biHeight, noThreads, i, data, *modifiedData, mask);
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
 					//std::cout << "Thread number: " << i << ", position: " << position << std::endl;
-					std::thread a(laplace, data, modifiedData, paddingSize, bmih.biWidth, bmih.biHeight, noThreads, position);
+					std::thread a(laplace, data, modifiedData, paddingSize, bmih.biWidth, bmih.biHeight, noThreads, position, noRows);
 					vecOfThreads.emplace_back(std::move(a));
 					position += noRows;
 					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);

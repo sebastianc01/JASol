@@ -1,4 +1,4 @@
 LIBRARY JADll
 EXPORTS
-laplaceFilter
+laplaceAsm
 TestAsm
