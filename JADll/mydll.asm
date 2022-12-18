@@ -50,6 +50,8 @@ laplaceAsm proc
 	;movdqu xmm2, 0101010101010101h
 ;Set correct mask in xmm2
 
+
+
 ;Trying to copy an image
 	;Setting registers
 	mov rbx, 0						; counter of all rows which have to be modificated in this thread
@@ -86,7 +88,35 @@ laplaceAsm proc
 	cmp edx, 3						; compare current colour with 3 (3 colours in every pixel)
 	je nextColumn					; when all colours in the pixel are modified then modify next column
 	; pixel is not ready yet
+	mov rax, rbx					; move current number of row to rax
+	;mul r13							; multiply current number of row by bytes per single row
+	mov r15, rax					; move temporarily contents of the rax to r15
+	mov rax, 3						; set rax to 3
+	mul rcx							; multiply current column by 3
+	add rax, r15					; add calculated values and save the result in rax
+	add rax, rdx					; add current colour to the result
+	xor r15, r15					; set r15 to 0
+	add rax, dataAddress			; add dataAddress to the result
+	pinsrb xmm0, byte ptr [rax], 5	; load to xmm0 center of the square
+	sub rax, 3						; substract 3 from rax, now it points element on the left
+	pinsrb xmm0, byte ptr [rax], 4	; (1, 2)
+	add rax, 6						; add 6 to rax, now it points element on the right
+	pinsrb xmm0, byte ptr [rax], 6	; (3, 2)
+	sub rax, r13					; substract number of bytes per row from rax
+	pinsrb xmm0, byte ptr [rax], 3	; (3, 1)
+	sub rax, 3						; substract 3 from rax
+	pinsrb xmm0, byte ptr [rax], 2	; (2, 1)
+	sub rax, 3						; substract 3 from rax
+	pinsrb xmm0, byte ptr [rax], 1	; (1, 1)
+	add rax, r13					; add number of byter per row to rax, now it points (1, 2)
+	add rax, r13					; add number of byter per row to rax, now it points (1, 3)
+	pinsrb xmm0, byte ptr [rax], 7	; (1, 3)
+	add rax, 3						; add 3 to rax
+	pinsrb xmm0, byte ptr [rax], 8	; (2, 3)
+	add rax, 3						; add 3 to rax
+	pinsrb xmm0, byte ptr [rax], 9	; (3, 3)
 	
+
 
 	inc edx							; modify next colour
 	jmp sameRow						; jump to sameRow
