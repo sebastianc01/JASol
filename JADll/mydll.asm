@@ -89,10 +89,11 @@ laplaceAsm proc
 	je nextColumn					; when all colours in the pixel are modified then modify next column
 	; pixel is not ready yet
 	mov rax, rbx					; move current number of row to rax
-	;mul r13							; multiply current number of row by bytes per single row
+	imul rax, r13							; multiply current number of row by bytes per single row
 	mov r15, rax					; move temporarily contents of the rax to r15
-	mov rax, 3						; set rax to 3
-	mul rcx							; multiply current column by 3
+	mov rax, rcx					; move current column number to rax
+	add rax, rcx
+	add rax, rcx					; multiply current column by 3
 	add rax, r15					; add calculated values and save the result in rax
 	add rax, rdx					; add current colour to the result
 	xor r15, r15					; set r15 to 0
@@ -115,9 +116,19 @@ laplaceAsm proc
 	pinsrb xmm0, byte ptr [rax], 8	; (2, 3)
 	add rax, 3						; add 3 to rax
 	pinsrb xmm0, byte ptr [rax], 9	; (3, 3)
-	
+	sub rax, 3						; (2, 3)
+	sub rax, r13					; (2, 2)
+	mov r15, rax					; currently calculat
+	pmaddubsw xmm0, xmm3			; multiply bytes in xmm0 by xmm3 and save the result in xmm0
+	;test
+	xor rax, rax					; set rax to 0
+	xor r14, r14					; set r14 to 0
+	;pextrb al, xmm0, 1
+	pmovmskb
 
-
+	;test
+	pextrb byte ptr [r15], xmm0, 1
+	xor r15, r15					; set r15 to 0
 	inc edx							; modify next colour
 	jmp sameRow						; jump to sameRow
 
