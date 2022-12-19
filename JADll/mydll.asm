@@ -43,9 +43,9 @@ laplaceAsm proc
 ;Saving data
 
 ;Set correct mask in xmm2
-	mov r8, 0FFFFFFFFFFFFFFFFh
+	mov r8, 0001000100010001h
 	movq xmm2, r8						
-	mov r8, 0FFFFFFFFFFFF0008h
+	mov r8, 0001000100010001h
 	pinsrq xmm2, r8, 1
 ;Set correct mask in xmm2
 
@@ -57,7 +57,7 @@ laplaceAsm proc
 	mov rcx, 0						; counter of all columns
 	mov rdx, 0						; counter of colours of every pixel, so its value has to be always between 0 and 2
 	mov r8, dataAddress				; data address is stored in r8
-	mov r9, modifiedDataAddress		; modified data address is stored in r9
+	mov r9, 0						; set r9 to 0
 	mov r10d, position				; position is stored in r10
 	;Setting registers
 	mov r11, 0						; maximum row - 1
@@ -133,15 +133,19 @@ laplaceAsm proc
 
 	pmaddubsw xmm0, xmm2			; multiply bytes in xmm0 by xmm2 and save the sum of the words in xmm0
 	pextrd r14d, xmm0, 1
-	mov byte ptr [r15], r14b
+	
+	sub r15, dataAddress
+	add r15, modifiedDataAddress
+	
+	mov byte ptr [r15], cl ;r14b
 	;test
 	xor rax, rax					; set rax to 0
 	xor r14, r14					; set r14 to 0
 	;pextrb al, xmm0, 1
 	;pmovmskb
-
+	
 	;test
-	pextrb byte ptr [r15], xmm0, 1
+	;pextrb byte ptr [r15], xmm0, 1
 	xor r15, r15					; set r15 to 0
 	inc edx							; modify next colour
 	jmp sameRow						; jump to sameRow
@@ -164,6 +168,7 @@ laplaceAsm proc
 	cmp ebx, r11d					; compare current row with total rows - 1
 	je endL							; current row is the last one, program will not calculate last row
 	jmp sameRow						; jump to sameRow
+
 
 	endL:
 	pop r15
