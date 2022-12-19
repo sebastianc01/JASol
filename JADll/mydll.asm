@@ -43,11 +43,10 @@ laplaceAsm proc
 ;Saving data
 
 ;Set correct mask in xmm2
-	mov r8, 00000000000001h
+	mov r8, 0FFFFFFFFFFFFFFFFh
 	movq xmm2, r8						
-	mov r8, 010101F601010101h
-	pinsrq xmm2, r8, 1	
-	;movdqu xmm2, 0101010101010101h
+	mov r8, 0FFFFFFFFFFFF0008h
+	pinsrq xmm2, r8, 1
 ;Set correct mask in xmm2
 
 
@@ -98,33 +97,48 @@ laplaceAsm proc
 	add rax, rdx					; add current colour to the result
 	xor r15, r15					; set r15 to 0
 	add rax, dataAddress			; add dataAddress to the result
-	pinsrb xmm0, byte ptr [rax], 5	; load to xmm0 center of the square
+	; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+	; 161514131211109 8 7 6 5 4 3 2 1
+	;   15  13  11  9   7   5   3   1
+	mov r14, 0FFFFFFFFFFFFFFFFh		 ;set xmm0
+	movq xmm0, r14						
+	mov r14, 0FFFFFFFFFFFF0000h
+	pinsrq xmm0, r14, 1				;set xmm0
+	pinsrb xmm0, byte ptr [rax], 9	; load to xmm0 center of the square
 	sub rax, 3						; substract 3 from rax, now it points element on the left
-	pinsrb xmm0, byte ptr [rax], 4	; (1, 2)
+	pinsrb xmm0, byte ptr [rax], 7	; (1, 2)
 	add rax, 6						; add 6 to rax, now it points element on the right
-	pinsrb xmm0, byte ptr [rax], 6	; (3, 2)
+	pinsrb xmm0, byte ptr [rax], 11	; (3, 2)
 	sub rax, r13					; substract number of bytes per row from rax
-	pinsrb xmm0, byte ptr [rax], 3	; (3, 1)
+	pinsrb xmm0, byte ptr [rax], 5	; (3, 1)
 	sub rax, 3						; substract 3 from rax
-	pinsrb xmm0, byte ptr [rax], 2	; (2, 1)
+	pinsrb xmm0, byte ptr [rax], 3	; (2, 1)
 	sub rax, 3						; substract 3 from rax
 	pinsrb xmm0, byte ptr [rax], 1	; (1, 1)
 	add rax, r13					; add number of byter per row to rax, now it points (1, 2)
 	add rax, r13					; add number of byter per row to rax, now it points (1, 3)
-	pinsrb xmm0, byte ptr [rax], 7	; (1, 3)
+	pinsrb xmm0, byte ptr [rax], 13	; (1, 3)
 	add rax, 3						; add 3 to rax
-	pinsrb xmm0, byte ptr [rax], 8	; (2, 3)
+	pinsrb xmm0, byte ptr [rax], 15	; (2, 3)
 	add rax, 3						; add 3 to rax
-	pinsrb xmm0, byte ptr [rax], 9	; (3, 3)
+	;pinsrb xmm0, byte ptr [rax], 9	; (3, 3)
+	xor r14, r14					; set r14 to 0
+	mov r14b, byte ptr [rax]		; save (3, 3) element in r14b
+	imul r14, -1					; multiply last element by -1
+	
+
 	sub rax, 3						; (2, 3)
 	sub rax, r13					; (2, 2)
-	mov r15, rax					; currently calculat
-	pmaddubsw xmm0, xmm3			; multiply bytes in xmm0 by xmm3 and save the result in xmm0
+	mov r15, rax					; currently calculated element
+
+	pmaddubsw xmm0, xmm2			; multiply bytes in xmm0 by xmm2 and save the sum of the words in xmm0
+	pextrd r14d, xmm0, 1
+	mov byte ptr [r15], r14b
 	;test
 	xor rax, rax					; set rax to 0
 	xor r14, r14					; set r14 to 0
 	;pextrb al, xmm0, 1
-	pmovmskb
+	;pmovmskb
 
 	;test
 	pextrb byte ptr [r15], xmm0, 1
