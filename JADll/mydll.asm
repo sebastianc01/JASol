@@ -100,11 +100,11 @@ laplaceAsm proc
 	; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 	; 161514131211109 8 7 6 5 4 3 2 1
 	;   15  13  11  9   7   5   3   1
-	mov r14, 0FFFFFFFFFFFFFFFFh		 ;set xmm0
+	mov r14, 0000000000000000h		 ;set xmm0
 	movq xmm0, r14						
-	mov r14, 0FFFFFFFFFFFF0000h
+	mov r14, 0000000000000000h
 	pinsrq xmm0, r14, 1				;set xmm0
-	pinsrb xmm0, byte ptr [rax], 9	; load to xmm0 center of the square
+	;pinsrb xmm0, byte ptr [rax], 9	; load to xmm0 center of the square
 	sub rax, 3						; substract 3 from rax, now it points element on the left
 	pinsrb xmm0, byte ptr [rax], 7	; (1, 2)
 	add rax, 6						; add 6 to rax, now it points element on the right
@@ -121,18 +121,44 @@ laplaceAsm proc
 	add rax, 3						; add 3 to rax
 	pinsrb xmm0, byte ptr [rax], 15	; (2, 3)
 	add rax, 3						; add 3 to rax
-	;pinsrb xmm0, byte ptr [rax], 9	; (3, 3)
+	pinsrb xmm0, byte ptr [rax], 9	; (3, 3)
+
+
 	xor r14, r14					; set r14 to 0
-	mov r14b, byte ptr [rax]		; save (3, 3) element in r14b
-	imul r14, -1					; multiply last element by -1
-	
+
 
 	sub rax, 3						; (2, 3)
 	sub rax, r13					; (2, 2)
 	mov r15, rax					; currently calculated element
 
-	pmaddubsw xmm0, xmm2			; multiply bytes in xmm0 by xmm2 and save the sum of the words in xmm0
-	pextrd r14d, xmm0, 1
+	mov r14b, byte ptr [rax]		; save (3, 3) element in r14b
+	imul r14, -8					; multiply last element by -8 and store it in r14
+
+
+	;test ROZKAZU
+	mov r14, 0003000400050006h		 ;set xmm0
+	movq xmm0, r14						
+	mov r14, 000700080009000Ah
+	pinsrq xmm0, r14, 1	
+	pmaddwd xmm0, xmm2
+	;VPMADDWD xmm0, xmm0, xmm2
+	vmovd r14, xmm0					; move dwords from xmm0 to r14
+	xor r9, r9						; set r9 to 0
+	mov r9d, r14d					; move first dword to r9d
+	shr r14, 32						; shift right by 4 positions
+	add r9d, r14d					; add 
+	PSRLDQ xmm0, 8
+	vmovd r14, xmm0				; move dwords from xmm0 to r14
+	add r9d, r14d
+	shr r14, 32
+	add r9d, r14d
+	nop
+	;test ROZKAZU
+
+	pmulhuw xmm0, xmm2
+
+	;pmaddubsw xmm0, xmm2			; multiply bytes in xmm0 by xmm2 and save the sum of the words in xmm0
+	;pextrd r14d, xmm0, 1
 	
 	sub r15, dataAddress
 	add r15, modifiedDataAddress
