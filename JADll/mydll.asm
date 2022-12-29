@@ -42,35 +42,33 @@ laplaceAsm proc
 	push r15						;
 ;Saving data
 
-;Set correct mask in xmm2
-	mov r8, 0001000100010001h
-	movq xmm2, r8						
-	mov r8, 0001000100010001h
-	pinsrq xmm2, r8, 1
-;Set correct mask in xmm2
 
 
+;Set correct masks
+	mov r8, 0001000100010001h
+	movq xmm1, r8						
+	mov r8, 0001000100010001h
+	pinsrq xmm1, r8, 1
+	mov r8, 0FFF7FFF7FFF7FFF7h
+	movq xmm6, r8						
+	mov r8, 0FFF7FFF7FFF7FFF7h
+	pinsrq xmm6, r8, 1
+;Set correct masks
+
+; Important registers
+; r13 - number of bytes per single row
+; r15 - first element beyond range predicted for this thread
+; xmm1 - 1 in all shorts
+; xmm6 - -8 in all shorts
+; xmm2 - first row of the calculated array (with mask 1)
+; xmm3 - second row of the calculated array (with mask -8)
+; xmm5 - second row of the calculated array (with mask 1)
+; xmm4 - third row of the calculated array (with mask 1)
 
 ;Trying to copy an image
 	;Setting registers
 	mov rbx, 0						; counter of all rows which have to be modificated in this thread
-	mov rcx, 0						; counter of all columns
-	mov rdx, 0						; counter of colours of every pixel, so its value has to be always between 0 and 2
-	mov r8, dataAddress				; data address is stored in r8
-	mov r9, 0						; set r9 to 0
-	mov r10d, position				; position is stored in r10
-	;Setting registers
-	mov r11, 0						; maximum row - 1
-	mov r12d, imageWidth			; image width - 1 is stored in r12d
-	dec r12d						; program will not calculate first and the last column
-	mov r13, 0						; number of bytes per single row
-	mov r14, 0
-	mov r15, 0
-
-	mov r11d, r10d
-	add r11d, noRows				; maximum row
-	dec r11d
-
+	xor rcx, rcx					; counter of all elements
 	xor rax, rax					; set rax 0
 	mov eax, imageWidth				; move image width to r13d
 	add eax, paddingSize			; add padding size to image width
@@ -79,107 +77,160 @@ laplaceAsm proc
 	xor r15, r15					; set r15 to 0
 	mov r13, rax					; r13 contains number of bytes per single row
 
+	mul position					; rax already contains number of bytes per single row, now multiplied by position
+	mov rcx, rax					; rcx contains the first element to calculate in this thread
+	xor rax, rax
+	mov eax, position
+	add eax, noRows					; maximum row of the current thread is in rax
+	mul r13							; first element beyond range predicted for this thread
+	mov r15, rax					; r15 contains the first element beyond range predicted for this thread
+
+	;test
+;mov rax, dataAddress
+;;add rax, r13
+;mov byte ptr [rax], 12
+;inc rax			 
+;mov byte ptr [rax], 12
+;inc rax			 
+;mov byte ptr [rax], 12
+;inc rax			 
+;mov byte ptr [rax], 12
+;inc rax			 
+;mov byte ptr [rax], 11
+;inc rax			 
+;mov byte ptr [rax], 12
+;inc rax			 
+;mov byte ptr [rax], 11
+;inc rax			 
+;mov byte ptr [rax], 16
+;inc rax			 
+;mov byte ptr [rax], 11
+;sub rax, 8
+;add rax, r13
+;mov byte ptr [rax], 22
+;inc rax			 	
+;mov byte ptr [rax], 22
+;inc rax			 	
+;mov byte ptr [rax], 22
+;inc rax			 	
+;mov byte ptr [rax], 22
+;inc rax			 	
+;mov byte ptr [rax], 21
+;inc rax			 	
+;mov byte ptr [rax], 22
+;inc rax			 	
+;mov byte ptr [rax], 21
+;inc rax			 	
+;mov byte ptr [rax], 26
+;inc rax			 	
+;mov byte ptr [rax], 21
+;sub rax, 8
+;add rax, r13
+;mov byte ptr [rax], 32
+;inc rax			 	
+;mov byte ptr [rax], 32
+;inc rax			 	
+;mov byte ptr [rax], 32
+;inc rax			 	
+;mov byte ptr [rax], 32
+;inc rax			 	
+;mov byte ptr [rax], 31
+;inc rax			 	
+;mov byte ptr [rax], 32
+;inc rax			 	
+;mov byte ptr [rax], 31
+;inc rax			 	
+;mov byte ptr [rax], 36
+;inc rax			 	
+;mov byte ptr [rax], 31
+;xor rax, rax
+pxor xmm15, xmm15
+;test
 
 	startL:
-	jmp checkCurrentRow				; jump to checkCurrentRow
-
-	sameRow:
-	cmp edx, 3						; compare current colour with 3 (3 colours in every pixel)
-	je nextColumn					; when all colours in the pixel are modified then modify next column
-	; pixel is not ready yet
-	mov rax, rbx					; move current number of row to rax
-	imul rax, r13							; multiply current number of row by bytes per single row
-	mov r15, rax					; move temporarily contents of the rax to r15
-	mov rax, rcx					; move current column number to rax
-	add rax, rcx
-	add rax, rcx					; multiply current column by 3
-	add rax, r15					; add calculated values and save the result in rax
-	add rax, rdx					; add current colour to the result
-	xor r15, r15					; set r15 to 0
-	add rax, dataAddress			; add dataAddress to the result
-	; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-	; 161514131211109 8 7 6 5 4 3 2 1
-	;   15  13  11  9   7   5   3   1
-	mov r14, 0000000000000000h		 ;set xmm0
-	movq xmm0, r14						
-	mov r14, 0000000000000000h
-	pinsrq xmm0, r14, 1				;set xmm0
-	;pinsrb xmm0, byte ptr [rax], 9	; load to xmm0 center of the square
-	sub rax, 3						; substract 3 from rax, now it points element on the left
-	pinsrb xmm0, byte ptr [rax], 7	; (1, 2)
-	add rax, 6						; add 6 to rax, now it points element on the right
-	pinsrb xmm0, byte ptr [rax], 11	; (3, 2)
-	sub rax, r13					; substract number of bytes per row from rax
-	pinsrb xmm0, byte ptr [rax], 5	; (3, 1)
-	sub rax, 3						; substract 3 from rax
-	pinsrb xmm0, byte ptr [rax], 3	; (2, 1)
-	sub rax, 3						; substract 3 from rax
-	pinsrb xmm0, byte ptr [rax], 1	; (1, 1)
-	add rax, r13					; add number of byter per row to rax, now it points (1, 2)
-	add rax, r13					; add number of byter per row to rax, now it points (1, 3)
-	pinsrb xmm0, byte ptr [rax], 13	; (1, 3)
-	add rax, 3						; add 3 to rax
-	pinsrb xmm0, byte ptr [rax], 15	; (2, 3)
-	add rax, 3						; add 3 to rax
-	pinsrb xmm0, byte ptr [rax], 9	; (3, 3)
-
-	
-	pmaddwd xmm0, xmm2				; multiply and add integers (16-bit)
-	vmovd r14, xmm0					; move dwords from xmm0 to r14
-	xor r9, r9						; set r9 to 0
-	mov r9d, r14d					; move first dword to r9d
-	shr r14, 32						; shift right by 32 bits (4 16-bit integers / 2 dwords)
-	add r9d, r14d					; add second dword to the first one
-	PSRLDQ xmm0, 8					; shifts xmm0 right by the 8 bytes
-	vmovd r14, xmm0					; move dwords from xmm0 to r14
-	add r9d, r14d					; add third dword
-	shr r14, 32						; shift right by 32 bits (4 16-bit integers / 2 dwords)
-	add r9d, r14d					; add fourth dword, sum is stored in r9
-
-	sub rax, 3						; (2, 3)
-	sub rax, r13					; (2, 2)
-	mov r15, rax					; currently calculated element
-
-	mov r14b, byte ptr [rax]		; save (3, 3) element in r14b
-	imul r14, -8					; multiply last element by -8 and store it in r14
-	add r14d, r9d					; add center element multiplied by the mask
-
-	sub r15, dataAddress			; substract address of the data
-	add r15, modifiedDataAddress	; add address of the modified data
-	mov byte ptr [r15], r14b		; save result in the modified data
-
-	;mov byte ptr [r15], cl ;r14b
-	;test
-	xor rax, rax					; set rax to 0
-	xor r14, r14					; set r14 to 0
-	;pextrb al, xmm0, 1
-	;pmovmskb
-	
-	;test
-	;pextrb byte ptr [r15], xmm0, 1
-	xor r15, r15					; set r15 to 0
-	inc edx							; modify next colour
-	jmp sameRow						; jump to sameRow
-
-	nextColumn:
-	mov edx, 0						; calculating another pixel, reset colour counter
-	cmp ecx, r12d					; compare current column with total column number - 1
-	je nextRow						; when all columns are modified then modify next row
-	inc ecx							; calculate next column
-	jmp sameRow						; jump to sameRow
-
-	nextRow:
-	mov ecx, 1						; calculating another row, reset column counter
-	inc ebx							; calculate next row
+	;sub rcx, r13					; subtract number of bytes per single row
+	cmp rcx, r13					; compare with number of bytes per single row
+	jl firstRow					; when less of equal to 0, then jump to firstRow
+	add rcx, r13					; add previuosly substracted number of bytes per single row
+	add rcx, r13					; add number of bytes per single row to rcx
+	cmp rcx, r15					; compare with first one beyond range predicted for this thread
+	jge endL						; when it is greater or equal then jump to endL
+	add rcx, dataAddress			; add data address to current element
+	VPUNPCKLBW xmm4, xmm15, byte ptr [rcx]	; save data from the third row to xmm4 (16-bit integer)
+	PSRLW xmm4, 8
+	sub rcx, r13					; subtract number of bytes per single row
+	VPUNPCKLBW xmm3, xmm15, byte ptr [rcx]	; save data from the second row to xmm3 (16-bit integer)
+	PSRLW xmm3, 8
+	vmovdqu xmm5, xmm3				; copy second row to xmm5
+	sub rcx, r13					; subtract number of bytes per single row
+	VPUNPCKLBW xmm2, xmm15, byte ptr [rcx]	; save data from the first row to xmm2 (16-bit integer)
+	PSRLW xmm2, 8
+	add rcx, r13					; rcx points middle row
+	sub rcx, dataAddress
+	add rcx, modifiedDataAddress
+	vpmullw xmm4, xmm4, xmm1
+	vpmullw xmm3, xmm3, xmm6
+	vpmullw xmm2, xmm2, xmm1
+	vpmullw xmm5, xmm5, xmm1
+	;pmullw xmm1, xmm2
+	vpaddd xmm2, xmm2, xmm5
+	vpaddd xmm2, xmm2, xmm4
+	xor r8, r8
+	;psllw xmm2, 4
+	pextrw r8d, xmm2, 1				; store first dword from xmm2 (sum of vertical results) in r8d
+	pextrw eax, xmm2, 4				; store fourth dword from xmm2 (sum of vertical results) in eax
+	add r8d, eax
+	pextrw eax, xmm2, 7				; store seventh dword from xmm2 (sum of vertical results) in eax
+	add r8d, eax
+	pextrw eax, xmm3, 2				; store second dword from xmm3 (center of the square with mask 8) in eax
+	neg ax
+	add r8d, eax
+	add rcx, 3							; add 3 to the current counter, now it points centre element
+	mov byte ptr [rcx], r8b				; set first colour
+	;mov byte ptr [rcx], 200
+	pextrw r8d, xmm2, 2				; store second dword from xmm2 (sum of vertical results) in r8d
+	pextrw eax, xmm2, 5				; store fifth dword from xmm2 (sum of vertical results) in eax
+	add r8d, eax
+	pextrw eax, xmm2, 8				; store seventh dword from xmm2 (sum of vertical results) in eax
+	add r8d, eax
+	pextrw eax, xmm3, 5				; store fifth dword from xmm3 (center of the square with mask 8) in eax
+	neg ax
+	add r8d, eax
+	inc rcx								; increment, now it points second centre
+	mov byte ptr [rcx], r8b				; set second colour
+	;mov byte ptr [rcx], 200
+	add rcx, 4							; add 4 to rcx, 1 to access next colour, 3 to access next column
+	xor rax, rax
+	xor r9, r9
+	mov al, byte ptr [rcx]
+	add rcx, r13
+	mov r9b, byte ptr [rcx]
+	sub rcx, r13
+	sub rcx, r13
+	add r9, rax
+	xor rax, rax
+	mov r9b, byte ptr [rcx]
+	add r9, rax
+	pextrw r9d, xmm2, 3				; store third dword from xmm2 (sum of vertical results) in r8d
+	add r8d, eax
+	pextrw r8d, xmm2, 6				; store sixth dword from xmm2 (sum of vertical results) in r8d
+	add r8d, eax
+	pextrw r8d, xmm3, 7				; store seventh dword from xmm2 (sum of vertical results) in r8d
+	neg ax
+	add r8d, eax
+	sub rcx, 3						; subtract 3 from rcx, now it points centre element
+	add rcx, r13						; add number of bytes per single row to rcx
+	mov byte ptr [rcx], r8b			; set third colour
+	;mov byte ptr [rcx], 200
+	;;inc rcx
+	sub rcx, modifiedDataAddress
+	sub rcx, r13
 	jmp startL						; jump to startL
 
-	checkCurrentRow:
-	cmp ebx, 0						; compare current row with 0
-	je nextRow						; current row is 0, jump to nextRow, program will not calculate first row
-	cmp ebx, r11d					; compare current row with total rows - 1
-	je endL							; current row is the last one, program will not calculate last row
-	jmp sameRow						; jump to sameRow
-
+	jmp endL
+	firstRow:
+	add rcx, r13
+	jmp startL
 
 	endL:
 	pop r15

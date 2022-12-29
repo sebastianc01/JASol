@@ -9,7 +9,7 @@
 
 int main(void)
 {
-    Bmp image("pingwin.bmp", 10);
+    Bmp image("pingwin.bmp", 1);
     image.filter(false);
     return 0;
 }
