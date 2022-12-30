@@ -177,49 +177,73 @@ pxor xmm15, xmm15
 	vpaddd xmm2, xmm2, xmm4
 	xor r8, r8
 	;psllw xmm2, 4
-	pextrw r8d, xmm2, 1				; store first dword from xmm2 (sum of vertical results) in r8d
-	pextrw eax, xmm2, 4				; store fourth dword from xmm2 (sum of vertical results) in eax
+	pextrw r8d, xmm2, 0				; store first dword from xmm2 (sum of vertical results) in r8d
+	pextrw eax, xmm2, 3				; store fourth dword from xmm2 (sum of vertical results) in eax
+	add r8d, eax
+	pextrw eax, xmm2, 6				; store seventh dword from xmm2 (sum of vertical results) in eax
+	add r8d, eax
+	pextrw eax, xmm3, 1				; store second dword from xmm3 (center of the square with mask 8) in eax
+	neg ax							; negate negative number, change sign
+	sub r8d, eax					; subtract positive number
+	add rcx, 3							; add 3 to the current counter, now it points centre element
+	mov r9b, r8b
+	xor r8b, r8b
+	cmp r8, 0
+	je positive1
+	mov r8b, r9b
+	neg r8b
+	back1:
+	mov byte ptr [rcx], r8b				; set first colour
+	;mov byte ptr [rcx], 200
+	pextrw r8d, xmm2, 1				; store second dword from xmm2 (sum of vertical results) in r8d
+	pextrw eax, xmm2, 4				; store fifth dword from xmm2 (sum of vertical results) in eax
 	add r8d, eax
 	pextrw eax, xmm2, 7				; store seventh dword from xmm2 (sum of vertical results) in eax
 	add r8d, eax
-	pextrw eax, xmm3, 2				; store second dword from xmm3 (center of the square with mask 8) in eax
+	pextrw eax, xmm3, 4				; store fifth dword from xmm3 (center of the square with mask 8) in eax
 	neg ax
-	add r8d, eax
-	add rcx, 3							; add 3 to the current counter, now it points centre element
-	mov byte ptr [rcx], r8b				; set first colour
-	;mov byte ptr [rcx], 200
-	pextrw r8d, xmm2, 2				; store second dword from xmm2 (sum of vertical results) in r8d
-	pextrw eax, xmm2, 5				; store fifth dword from xmm2 (sum of vertical results) in eax
-	add r8d, eax
-	pextrw eax, xmm2, 8				; store seventh dword from xmm2 (sum of vertical results) in eax
-	add r8d, eax
-	pextrw eax, xmm3, 5				; store fifth dword from xmm3 (center of the square with mask 8) in eax
-	neg ax
-	add r8d, eax
+	sub r8d, eax
 	inc rcx								; increment, now it points second centre
+	mov r9b, r8b
+	xor r8b, r8b
+	cmp r8, 0
+	je positive2
+	mov r8b, r9b
+	neg r8b
+	back2:
 	mov byte ptr [rcx], r8b				; set second colour
-	;mov byte ptr [rcx], 200
+	sub rcx, modifiedDataAddress
+	add rcx, dataAddress
 	add rcx, 4							; add 4 to rcx, 1 to access next colour, 3 to access next column
 	xor rax, rax
-	xor r9, r9
+	xor r8, r8
 	mov al, byte ptr [rcx]
 	add rcx, r13
-	mov r9b, byte ptr [rcx]
+	mov r8b, byte ptr [rcx]
 	sub rcx, r13
 	sub rcx, r13
-	add r9, rax
-	xor rax, rax
-	mov r9b, byte ptr [rcx]
-	add r9, rax
-	pextrw r9d, xmm2, 3				; store third dword from xmm2 (sum of vertical results) in r8d
+	add r8, rax
+	;xor rax, rax
+	mov al, byte ptr [rcx]
+	add r8, rax
+	pextrw eax, xmm2, 2				; store third dword from xmm2 (sum of vertical results) in r8d
 	add r8d, eax
-	pextrw r8d, xmm2, 6				; store sixth dword from xmm2 (sum of vertical results) in r8d
+	pextrw eax, xmm2, 5				; store sixth dword from xmm2 (sum of vertical results) in r8d
 	add r8d, eax
-	pextrw r8d, xmm3, 7				; store seventh dword from xmm2 (sum of vertical results) in r8d
+	pextrw eax, xmm3, 5				; store fifth dword from xmm2 (sum of vertical results) in r8d
 	neg ax
-	add r8d, eax
+	sub r8d, eax
 	sub rcx, 3						; subtract 3 from rcx, now it points centre element
 	add rcx, r13						; add number of bytes per single row to rcx
+	sub rcx, dataAddress
+	add rcx, modifiedDataAddress
+	mov r9b, r8b
+	mov r8b, 0
+	cmp r8, 0
+	je positive3
+	mov r8b, r9b
+	neg r8b
+	back3:
 	mov byte ptr [rcx], r8b			; set third colour
 	;mov byte ptr [rcx], 200
 	;;inc rcx
@@ -231,6 +255,18 @@ pxor xmm15, xmm15
 	firstRow:
 	add rcx, r13
 	jmp startL
+
+	positive1:
+	mov r8b, r9b
+	jmp back1
+
+	positive2:
+	mov r8b, r9b
+	jmp back2
+
+	positive3:
+	mov r8b, r9b
+	jmp back3
 
 	endL:
 	pop r15
