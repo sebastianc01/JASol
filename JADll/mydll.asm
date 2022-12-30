@@ -182,7 +182,7 @@ pxor xmm15, xmm15
 	add r8d, eax
 	pextrw eax, xmm2, 6				; store seventh dword from xmm2 (sum of vertical results) in eax
 	add r8d, eax
-	pextrw eax, xmm3, 1				; store second dword from xmm3 (center of the square with mask 8) in eax
+	pextrw eax, xmm3, 3				; store second dword from xmm3 (center of the square with mask 8) in eax
 	neg ax							; negate negative number, change sign
 	sub r8d, eax					; subtract positive number
 	add rcx, 3							; add 3 to the current counter, now it points centre element
