@@ -132,63 +132,63 @@ laplaceAsm proc
 	add r8d, eax
 	pextrw eax, xmm3, 3				; store second dword from xmm3 (center of the square with mask 8) in eax
 	neg ax							; change sign
-	sub r8d, eax					; subtract positive number
+	sub r8d, eax					; subtract (add negative number)
 	add rcx, 3						; add 3 to the current counter, now it points centre element
-	mov r9b, r8b
-	xor r8b, r8b
-	cmp r8, 0
-	je positive1
-	mov r8b, r9b
-	neg r8b
+	mov r9b, r8b					; save contents of r8b in r9b
+	xor r8b, r8b					; set r8b 0
+	cmp r8, 0						; when r8 is equal to 0, then number is positive, negative otherwise
+	je positive1					; jump to positive1 when equal to 0
+	mov r8b, r9b					; number is negative, return initial data
+	neg r8b							; negate, change sign
 	back1:
-	mov byte ptr [rcx], r8b				; set first colour
+	mov byte ptr [rcx], r8b			; set first colour
 	pextrw r8d, xmm2, 1				; store second dword from xmm2 (sum of vertical results) in r8d
 	pextrw eax, xmm2, 4				; store fifth dword from xmm2 (sum of vertical results) in eax
 	add r8d, eax
 	pextrw eax, xmm2, 7				; store seventh dword from xmm2 (sum of vertical results) in eax
 	add r8d, eax
 	pextrw eax, xmm3, 4				; store fifth dword from xmm3 (center of the square with mask 8) in eax
-	neg ax
-	sub r8d, eax
+	neg ax							; change sign
+	sub r8d, eax					; subtract (add negative number)
 	inc rcx							; increment, now it points second centre
-	mov r9b, r8b
-	xor r8b, r8b
-	cmp r8, 0
-	je positive2
-	mov r8b, r9b
-	neg r8b
+	mov r9b, r8b					; save contents of r8b in r9b
+	xor r8b, r8b					; set r8b 0
+	cmp r8, 0						; when r8 is equal to 0, then number is positive, negative otherwise
+	je positive2					; jump to positive2 when equal to 0
+	mov r8b, r9b					; number is negative, return initial data
+	neg r8b							; negate, change sign
 	back2:
-	mov byte ptr [rcx], r8b				; set second colour
+	mov byte ptr [rcx], r8b			; set second colour
 	sub rcx, modifiedDataAddress
 	add rcx, dataAddress
-	add rcx, 4							; add 4 to rcx, 1 to access next colour, 3 to access next column
+	add rcx, 4						; add 4 to rcx, 1 to access next colour, 3 to access next column
 	xor rax, rax
 	xor r8, r8
-	mov al, byte ptr [rcx]
+	mov al, byte ptr [rcx]			; move first element of the third row (third colour)
 	add rcx, r13
-	mov r8b, byte ptr [rcx]
+	mov r8b, byte ptr [rcx]			; move second element of the third row (third colour)
 	sub rcx, r13
 	sub rcx, r13
 	add r8, rax
-	mov al, byte ptr [rcx]
+	mov al, byte ptr [rcx]			; move third element of the third row (third colour)
 	add r8, rax
-	pextrw eax, xmm2, 2				; store third dword from xmm2 (sum of vertical results) in r8d
+	pextrw eax, xmm2, 2				; add third dword from xmm2 (sum of vertical results) to r8d
 	add r8d, eax
-	pextrw eax, xmm2, 5				; store sixth dword from xmm2 (sum of vertical results) in r8d
+	pextrw eax, xmm2, 5				; add sixth dword from xmm2 (sum of vertical results) to r8d
 	add r8d, eax
-	pextrw eax, xmm3, 5				; store fifth dword from xmm2 (sum of vertical results) in r8d
-	neg ax
-	sub r8d, eax
+	pextrw eax, xmm3, 5				; add fifth dword from xmm2 (sum of vertical results) to r8d
+	neg ax							; change sign
+	sub r8d, eax					; subtract (add negative number)
 	sub rcx, 3						; subtract 3 from rcx, now it points third centre element
 	add rcx, r13					; add number of bytes per single row to rcx
 	sub rcx, dataAddress
 	add rcx, modifiedDataAddress
-	mov r9b, r8b
-	mov r8b, 0
-	cmp r8, 0
-	je positive3
-	mov r8b, r9b
-	neg r8b
+	mov r9b, r8b					; save contents of r8b in r9b
+	xor r8b, r8b					; set r8b 0
+	cmp r8, 0						; when r8 is equal to 0, then number is positive, negative otherwise
+	je positive3					; jump to positive3 when equal to 0
+	mov r8b, r9b					; number is negative, return initial data
+	neg r8b							; negate, change sign
 	back3:
 	mov byte ptr [rcx], r8b			; set third colour
 	sub rcx, 2						; rcx points first centre element
