@@ -19,7 +19,7 @@ laplaceAsm proc
 	mov rax, 5
 ;Saving data
 	push rbp
-    mov     rbp, rsp
+    mov rbp, rsp
 	mov dataAddress, rcx			;	Saving image data address
 	mov modifiedDataAddress, rdx	;	Saving modified data address
 	mov paddingSize, r8d			;   Saving padding size
@@ -60,7 +60,7 @@ laplaceAsm proc
 ; rcx - counter of all elements
 ; r13 - number of bytes per single row
 ; r15 - first element beyond range predicted for this thread
-; r10 - imageWidth - 2
+; r10 - imageWidth - 1
 ; r8, r9 - used
 ; xmm1 - 1 in all shorts
 ; xmm6 - -8 in all shorts
@@ -72,7 +72,7 @@ laplaceAsm proc
 ;Trying to copy an image
 	;Setting registers
 	mov r10d, imageWidth			; r10 contains image width
-	sub r10, 1						; subtract 2 from r10, starts from 0 (to imageWidth - 1)
+	sub r10, 1						; subtract 1 from r10, starts from 0 (to imageWidth - 1)
 	xor rcx, rcx					; counter of all elements
 	xor rax, rax					; set rax 0
 	mov eax, imageWidth				; move image width to r13d
@@ -85,20 +85,15 @@ laplaceAsm proc
 	mul position					; rax already contains number of bytes per single row, now multiplied by position
 	cmp rax, 0						; compare rax with 0
 	jle	firstRow					; when less or equal then jump to firstRow (first row will be skipped)
-	sub rax, r13
-	sub rax, r13
+	sub rax, r13					
+	sub rax, r13					; subtract number of bytes per 2 rows from counter of all elements
 	back0:
 	mov rcx, rax					; rcx contains the first element to calculate in this thread
-	xor rax, rax
-	mov eax, position
+	xor rax, rax					; set rax to 0
+	mov eax, position				; move position to eax
 	add eax, noRows					; maximum row of the current thread is in rax
 	mul r13							; first element beyond range predicted for this thread
 	mov r15, rax					; r15 contains the first element beyond range predicted for this thread
-	xor rax, rax					; set rax to 0
-	mov eax, imageHeight			; move image height to eax
-	mul r13							; multiply by number of bytes per single row, it is first element beyond image range
-	cmp rax, r15					; compare the first element beyond image range with the first element beyond range predicted for this thread
-	jle lastRow						; thread could calculate last row, jump to lastRow and skip it
 	xor r9, r9
 
 	startL:
@@ -112,35 +107,33 @@ laplaceAsm proc
 	jge endL						; when it is greater or equal then jump to endL
 	add rcx, dataAddress			; add data address to current element
 	VPUNPCKLBW xmm4, xmm15, byte ptr [rcx]	; save data from the third row to xmm4 (16-bit integer)
-	PSRLW xmm4, 8
+	PSRLW xmm4, 8					; shift xmm4 8 bits right
 	sub rcx, r13					; subtract number of bytes per single row
 	VPUNPCKLBW xmm3, xmm15, byte ptr [rcx]	; save data from the second row to xmm3 (16-bit integer)
-	PSRLW xmm3, 8
+	PSRLW xmm3, 8					; shift xmm3 8 bits right
 	vmovdqu xmm5, xmm3				; copy second row to xmm5
 	sub rcx, r13					; subtract number of bytes per single row
 	VPUNPCKLBW xmm2, xmm15, byte ptr [rcx]	; save data from the first row to xmm2 (16-bit integer)
-	PSRLW xmm2, 8
+	PSRLW xmm2, 8					; shift xmm2 8 bits right
 	add rcx, r13					; rcx points middle row
 	sub rcx, dataAddress
 	add rcx, modifiedDataAddress
-	vpmullw xmm4, xmm4, xmm1
-	vpmullw xmm3, xmm3, xmm6
-	vpmullw xmm2, xmm2, xmm1
-	vpmullw xmm5, xmm5, xmm1
-	;pmullw xmm1, xmm2
-	vpaddd xmm2, xmm2, xmm5
-	vpaddd xmm2, xmm2, xmm4
+	vpmullw xmm4, xmm4, xmm1		; multiply xmm4 words by xmm1 words and save results in xmm4
+	vpmullw xmm3, xmm3, xmm6		; multiply xmm3 words by xmm6 words and save results in xmm3
+	vpmullw xmm2, xmm2, xmm1		; multiply xmm2 words by xmm1 words and save results in xmm2
+	vpmullw xmm5, xmm5, xmm1		; multiply xmm5 words by xmm1 words and save results in xmm5
+	vpaddd xmm2, xmm2, xmm5			; add dwords in xmm2 with dwords in xmm5 and save result in xmm2
+	vpaddd xmm2, xmm2, xmm4			; add dwords in xmm2 with dwords in xmm4 and save result in xmm2
 	xor r8, r8
-	;psllw xmm2, 4
 	pextrw r8d, xmm2, 0				; store first dword from xmm2 (sum of vertical results) in r8d
 	pextrw eax, xmm2, 3				; store fourth dword from xmm2 (sum of vertical results) in eax
 	add r8d, eax
 	pextrw eax, xmm2, 6				; store seventh dword from xmm2 (sum of vertical results) in eax
 	add r8d, eax
 	pextrw eax, xmm3, 3				; store second dword from xmm3 (center of the square with mask 8) in eax
-	neg ax							; negate negative number, change sign
+	neg ax							; change sign
 	sub r8d, eax					; subtract positive number
-	add rcx, 3							; add 3 to the current counter, now it points centre element
+	add rcx, 3						; add 3 to the current counter, now it points centre element
 	mov r9b, r8b
 	xor r8b, r8b
 	cmp r8, 0
@@ -177,7 +170,6 @@ laplaceAsm proc
 	sub rcx, r13
 	sub rcx, r13
 	add r8, rax
-	;xor rax, rax
 	mov al, byte ptr [rcx]
 	add r8, rax
 	pextrw eax, xmm2, 2				; store third dword from xmm2 (sum of vertical results) in r8d
@@ -200,31 +192,21 @@ laplaceAsm proc
 	back3:
 	mov byte ptr [rcx], r8b			; set third colour
 	sub rcx, 2						; rcx points first centre element
-	;mov byte ptr [rcx], 200
-	;;inc rcx
 	sub rcx, modifiedDataAddress
 	sub rcx, r13
 	jmp startL						; jump to startL
 
 	firstRow:
-	add rax, r13
 	jmp back0
 
 	positive1:
-	;mov r8b, r9b
 	jmp back1
 
 	positive2:
-	;mov r8b, r9b
 	jmp back2
 
 	positive3:
-	;mov r8b, r9b
 	jmp back3
-
-	lastRow:
-	sub r15, r13					; subtract number of bytes per single row from first element beyond range predicted for this thread
-	jmp startL
 
 	nextRow:
 	mov rbx, 0						; reset the column's counter
