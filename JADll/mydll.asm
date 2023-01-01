@@ -227,14 +227,13 @@ laplaceAsm proc
 	jmp startL
 
 	nextRow:
-	add rcx, modifiedDataAddress
-	;mov byte ptr [rcx], 200
 	mov rbx, 0						; reset the column's counter
-	mov rax, 6						; move 6 (first and last row pixels, both 3 colours) to rax
-	add eax, paddingSize			; add padding size to eax
+	add rcx, 6						; add 6 (first and last row pixels, both 3 colours) to counter of all elements
+	xor rax, rax					; set rax to 0
+	mov eax, paddingSize			; move padding size to eax
+	mov r8, 3						; move 3 to r8
+	mul r8							; multiply padding size by 3 (3 colours)
 	add rcx, rax					; do not calculate padding and verge columns
-	add rcx, 2						; temporary, add 5 without lines
-	sub rcx, modifiedDataAddress
 	jmp startL						; jump to startL
 
 	endL:
