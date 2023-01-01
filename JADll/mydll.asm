@@ -56,8 +56,12 @@ laplaceAsm proc
 ;Set correct masks
 
 ; Important registers
+; rbx - counter of columns (just to avoid calculating padding and image verges)
+; rcx - counter of all elements
 ; r13 - number of bytes per single row
 ; r15 - first element beyond range predicted for this thread
+; r10 - imageWidth - 2
+; r8, r9 - used
 ; xmm1 - 1 in all shorts
 ; xmm6 - -8 in all shorts
 ; xmm2 - first row of the calculated array (with mask 1)
@@ -67,7 +71,8 @@ laplaceAsm proc
 
 ;Trying to copy an image
 	;Setting registers
-	mov rbx, 0						; counter of all rows which have to be modificated in this thread
+	mov r10d, imageWidth			; r10 contains image width
+	sub r10, 1						; subtract 2 from r10, starts from 0 (to imageWidth - 1)
 	xor rcx, rcx					; counter of all elements
 	xor rax, rax					; set rax 0
 	mov eax, imageWidth				; move image width to r13d
@@ -78,80 +83,30 @@ laplaceAsm proc
 	mov r13, rax					; r13 contains number of bytes per single row
 
 	mul position					; rax already contains number of bytes per single row, now multiplied by position
+	cmp rax, 0						; compare rax with 0
+	jle	firstRow					; when less or equal then jump to firstRow (first row will be skipped)
+	sub rax, r13
+	sub rax, r13
+	back0:
 	mov rcx, rax					; rcx contains the first element to calculate in this thread
 	xor rax, rax
 	mov eax, position
 	add eax, noRows					; maximum row of the current thread is in rax
 	mul r13							; first element beyond range predicted for this thread
 	mov r15, rax					; r15 contains the first element beyond range predicted for this thread
-
-	;test
-;mov rax, dataAddress
-;;add rax, r13
-;mov byte ptr [rax], 12
-;inc rax			 
-;mov byte ptr [rax], 12
-;inc rax			 
-;mov byte ptr [rax], 12
-;inc rax			 
-;mov byte ptr [rax], 12
-;inc rax			 
-;mov byte ptr [rax], 11
-;inc rax			 
-;mov byte ptr [rax], 12
-;inc rax			 
-;mov byte ptr [rax], 11
-;inc rax			 
-;mov byte ptr [rax], 16
-;inc rax			 
-;mov byte ptr [rax], 11
-;sub rax, 8
-;add rax, r13
-;mov byte ptr [rax], 22
-;inc rax			 	
-;mov byte ptr [rax], 22
-;inc rax			 	
-;mov byte ptr [rax], 22
-;inc rax			 	
-;mov byte ptr [rax], 22
-;inc rax			 	
-;mov byte ptr [rax], 21
-;inc rax			 	
-;mov byte ptr [rax], 22
-;inc rax			 	
-;mov byte ptr [rax], 21
-;inc rax			 	
-;mov byte ptr [rax], 26
-;inc rax			 	
-;mov byte ptr [rax], 21
-;sub rax, 8
-;add rax, r13
-;mov byte ptr [rax], 32
-;inc rax			 	
-;mov byte ptr [rax], 32
-;inc rax			 	
-;mov byte ptr [rax], 32
-;inc rax			 	
-;mov byte ptr [rax], 32
-;inc rax			 	
-;mov byte ptr [rax], 31
-;inc rax			 	
-;mov byte ptr [rax], 32
-;inc rax			 	
-;mov byte ptr [rax], 31
-;inc rax			 	
-;mov byte ptr [rax], 36
-;inc rax			 	
-;mov byte ptr [rax], 31
-;xor rax, rax
-pxor xmm15, xmm15
-;test
+	xor rax, rax					; set rax to 0
+	mov eax, imageHeight			; move image height to eax
+	mul r13							; multiply by number of bytes per single row, it is first element beyond image range
+	cmp rax, r15					; compare the first element beyond image range with the first element beyond range predicted for this thread
+	jle lastRow						; thread could calculate last row, jump to lastRow and skip it
+	xor r9, r9
 
 	startL:
-	;sub rcx, r13					; subtract number of bytes per single row
-	cmp rcx, r13					; compare with number of bytes per single row
-	jl firstRow					; when less of equal to 0, then jump to firstRow
-	add rcx, r13					; add previuosly substracted number of bytes per single row
+	inc rbx							; increment the counter of the columns
+	cmp rbx, r10					; compare counter of the columns with image width - 1
+	je nextRow						; when equal, jump to nextRow
+
+	add rcx, r13					; add number of bytes per single row to rcx
 	add rcx, r13					; add number of bytes per single row to rcx
 	cmp rcx, r15					; compare with first one beyond range predicted for this thread
 	jge endL						; when it is greater or equal then jump to endL
@@ -194,7 +149,6 @@ pxor xmm15, xmm15
 	neg r8b
 	back1:
 	mov byte ptr [rcx], r8b				; set first colour
-	;mov byte ptr [rcx], 200
 	pextrw r8d, xmm2, 1				; store second dword from xmm2 (sum of vertical results) in r8d
 	pextrw eax, xmm2, 4				; store fifth dword from xmm2 (sum of vertical results) in eax
 	add r8d, eax
@@ -203,7 +157,7 @@ pxor xmm15, xmm15
 	pextrw eax, xmm3, 4				; store fifth dword from xmm3 (center of the square with mask 8) in eax
 	neg ax
 	sub r8d, eax
-	inc rcx								; increment, now it points second centre
+	inc rcx							; increment, now it points second centre
 	mov r9b, r8b
 	xor r8b, r8b
 	cmp r8, 0
@@ -233,8 +187,8 @@ pxor xmm15, xmm15
 	pextrw eax, xmm3, 5				; store fifth dword from xmm2 (sum of vertical results) in r8d
 	neg ax
 	sub r8d, eax
-	sub rcx, 3						; subtract 3 from rcx, now it points centre element
-	add rcx, r13						; add number of bytes per single row to rcx
+	sub rcx, 3						; subtract 3 from rcx, now it points third centre element
+	add rcx, r13					; add number of bytes per single row to rcx
 	sub rcx, dataAddress
 	add rcx, modifiedDataAddress
 	mov r9b, r8b
@@ -245,28 +199,43 @@ pxor xmm15, xmm15
 	neg r8b
 	back3:
 	mov byte ptr [rcx], r8b			; set third colour
+	sub rcx, 2						; rcx points first centre element
 	;mov byte ptr [rcx], 200
 	;;inc rcx
 	sub rcx, modifiedDataAddress
 	sub rcx, r13
 	jmp startL						; jump to startL
 
-	jmp endL
 	firstRow:
-	add rcx, r13
-	jmp startL
+	add rax, r13
+	jmp back0
 
 	positive1:
-	mov r8b, r9b
+	;mov r8b, r9b
 	jmp back1
 
 	positive2:
-	mov r8b, r9b
+	;mov r8b, r9b
 	jmp back2
 
 	positive3:
-	mov r8b, r9b
+	;mov r8b, r9b
 	jmp back3
+
+	lastRow:
+	sub r15, r13					; subtract number of bytes per single row from first element beyond range predicted for this thread
+	jmp startL
+
+	nextRow:
+	add rcx, modifiedDataAddress
+	;mov byte ptr [rcx], 200
+	mov rbx, 0						; reset the column's counter
+	mov rax, 6						; move 6 (first and last row pixels, both 3 colours) to rax
+	add eax, paddingSize			; add padding size to eax
+	add rcx, rax					; do not calculate padding and verge columns
+	add rcx, 2						; temporary, add 5 without lines
+	sub rcx, modifiedDataAddress
+	jmp startL						; jump to startL
 
 	endL:
 	pop r15
