@@ -1,0 +1,10 @@
+1 threads: 0.0170939
+2 threads: 0.010294
+3 threads: 0.00854907
+4 threads: 0.00887494
+5 threads: 0.00881115
+6 threads: 0.00832975
+7 threads: 0.00944199
+8 threads: 0.0105901
+9 threads: 0.0113138
+10 threads: 0.0115826

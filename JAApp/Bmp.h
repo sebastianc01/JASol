@@ -32,6 +32,6 @@ public:
 	Bmp(std::string file, int noThreads);
 	~Bmp();
 	void readFile(std::string file, int noThreads);
-	void filter(bool cpp);
+	double filter(bool cpp);
 	void saveImage(unsigned char* modifiedData, const char* destinationFile);
 };

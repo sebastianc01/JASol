@@ -50,7 +50,7 @@ void Bmp::readFile(std::string file, int noThreads) {
 }
 
 
-void Bmp::filter(bool cpp) {
+double Bmp::filter(bool cpp) {
 	std::vector<std::thread> vecOfThreads;
 	/*for (int i = 0; i < noThreads; ++i) {
 		modifiedData[i] = new float [bmih.biHeight / noThreads];
@@ -65,7 +65,6 @@ void Bmp::filter(bool cpp) {
 	for (int i = 0; i < 3 * bmih.biHeight * (bmih.biWidth + paddingSize); ++i) {
 		modifiedData[i] = 0;
 	}
-	std::cout << bmfh.bfSize - BMP_File_Header;
 	//unsigned char mask[] = { 1, 1, 1, 1, -8, 1, 1, 1, 1 };
 	BOOL fFreeResult;
 	std::chrono::time_point<std::chrono::high_resolution_clock> start;
@@ -75,17 +74,12 @@ void Bmp::filter(bool cpp) {
 		if (cpp) {
 			laplaceCpp laplace = (laplaceCpp)GetProcAddress(hinstLib, "laplaceFilter");
 			if (laplace) {
-				//laplace(bmih.biWidth, bmih.biHeight, noThreads, 5, data, std::ref(modifiedData), mask);
 				start = std::chrono::high_resolution_clock::now();
 				for (int i = 0; i < noThreads; ++i) {
-					//laplace(bmih.biWidth, bmih.biHeight, noThreads, i, data, *modifiedData, mask);
 					int noRows = bmih.biHeight - (noThreads * (bmih.biHeight / noThreads)) > i ? bmih.biHeight / noThreads + 1 : bmih.biHeight / noThreads;
-					//std::cout << "Thread number: " << i << ", position: " << position << std::endl;
 					std::thread a(laplace, data, modifiedData, paddingSize, bmih.biWidth, bmih.biHeight, noThreads, position, noRows);
 					vecOfThreads.emplace_back(std::move(a));
 					position += noRows;
-					/*std::future<float*> a = std::async(laplace, bmih.biWidth, bmih.biHeight, noThreads, i, data, mask);
-					vecOfThreads.emplace_back(std::move(a));*/
 				}
 			}
 		}
@@ -107,20 +101,16 @@ void Bmp::filter(bool cpp) {
 			}
 		}
 		for (int i = 0, pos = 0; i < noThreads; ++i) {
-			//vecOfThreads.at(i).get();
-			/*int tSize = sizeof(vecOfThreads.at(i).get());
-			for (int k = 0; k < tSize; ++k, ++pos) {
-				modifiedData[pos] = vecOfThreads.at(i).get()[k];
-			}*/
 			vecOfThreads.at(i).join();
 		}
 		end = std::chrono::high_resolution_clock::now();
 		FreeLibrary(hinstLib);
 	}
 	std::chrono::duration<double> diff = end - start;
-	std::cout<<"Time: "<<diff.count();
+	//std::cout<<"Time: "<<diff.count();
 	saveImage(modifiedData, "result.bmp");
 	delete[] modifiedData;
+	return diff.count();
 }
 
 void Bmp::saveImage(unsigned char* modifiedData, const char* destinationFile) {
@@ -130,7 +120,6 @@ void Bmp::saveImage(unsigned char* modifiedData, const char* destinationFile) {
 		std::cout << "Pliku nie udalo sie zapisac.";
 		return;
 	}
-	unsigned char padding[3] = { 0, 0, 0 };
 	const int paddingSize = (4 - (bmih.biWidth * 3) % 4) % 4;
 	//BITMAPFILEHEADER bmfht = bmfh;
 	//BITMAPINFOHEADER bmiht = bmih;
