@@ -69,16 +69,15 @@ laplaceAsm proc
 ; xmm5 - second row of the calculated array (with mask 1)
 ; xmm4 - third row of the calculated array (with mask 1)
 
-;Trying to copy an image
-	;Setting registers
+	;Set registers
 	mov r10d, imageWidth			; r10 contains image width
 	sub r10, 1						; subtract 1 from r10, starts from 0 (to imageWidth - 1)
 	xor rcx, rcx					; counter of all elements
 	xor rax, rax					; set rax 0
 	mov eax, imageWidth				; move image width to r13d
-	add eax, paddingSize			; add padding size to image width
 	mov r15, 3						
 	mul r15							; multiply by 3, in result eax contains number of bytes per single row
+	add eax, paddingSize			; add padding size to image width
 	xor r15, r15					; set r15 to 0
 	mov r13, rax					; r13 contains number of bytes per single row
 
@@ -100,7 +99,6 @@ laplaceAsm proc
 	inc rbx							; increment the counter of the columns
 	cmp rbx, r10					; compare counter of the columns with image width - 1
 	je nextRow						; when equal, jump to nextRow
-
 	add rcx, r13					; add number of bytes per single row to rcx
 	add rcx, r13					; add number of bytes per single row to rcx
 	cmp rcx, r15					; compare with first one beyond range predicted for this thread
@@ -122,39 +120,41 @@ laplaceAsm proc
 	vpmullw xmm3, xmm3, xmm6		; multiply xmm3 words by xmm6 words and save results in xmm3
 	vpmullw xmm2, xmm2, xmm1		; multiply xmm2 words by xmm1 words and save results in xmm2
 	vpmullw xmm5, xmm5, xmm1		; multiply xmm5 words by xmm1 words and save results in xmm5
-	vpaddd xmm2, xmm2, xmm5			; add dwords in xmm2 with dwords in xmm5 and save result in xmm2
-	vpaddd xmm2, xmm2, xmm4			; add dwords in xmm2 with dwords in xmm4 and save result in xmm2
+	vpaddw xmm2, xmm2, xmm5			; add dwords in xmm2 with dwords in xmm5 and save result in xmm2
+	vpaddw xmm2, xmm2, xmm4			; add dwords in xmm2 with dwords in xmm4 and save result in xmm2
 	xor r8, r8
-	pextrw r8d, xmm2, 0				; store first dword from xmm2 (sum of vertical results) in r8d
-	pextrw eax, xmm2, 3				; store fourth dword from xmm2 (sum of vertical results) in eax
+	pextrw r8d, xmm2, 0				; store first word from xmm2 (sum of vertical results) in r8d
+	pextrw eax, xmm2, 3				; store fourth word from xmm2 (sum of vertical results) in eax
 	add r8d, eax
-	pextrw eax, xmm2, 6				; store seventh dword from xmm2 (sum of vertical results) in eax
+	pextrw eax, xmm2, 6				; store seventh word from xmm2 (sum of vertical results) in eax
 	add r8d, eax
-	pextrw eax, xmm3, 3				; store second dword from xmm3 (center of the square with mask 8) in eax
+	pextrw eax, xmm3, 3				; store second word from xmm3 (center of the square with mask 8) in eax
 	neg ax							; change sign
 	sub r8d, eax					; subtract (add negative number)
 	add rcx, 3						; add 3 to the current counter, now it points centre element
 	mov r9b, r8b					; save contents of r8b in r9b
 	xor r8b, r8b					; set r8b 0
 	cmp r8, 0						; when r8 is equal to 0, then number is positive, negative otherwise
-	je positive1					; jump to positive1 when equal to 0
+	jge positive1					; jump to positive1 when equal to 0
 	mov r8b, r9b					; number is negative, return initial data
 	neg r8b							; negate, change sign
 	back1:
 	mov byte ptr [rcx], r8b			; set first colour
-	pextrw r8d, xmm2, 1				; store second dword from xmm2 (sum of vertical results) in r8d
-	pextrw eax, xmm2, 4				; store fifth dword from xmm2 (sum of vertical results) in eax
+	xor r8, r8
+	xor r9, r9
+	pextrw r8d, xmm2, 1				; store second word from xmm2 (sum of vertical results) in r8d
+	pextrw eax, xmm2, 4				; store fifth word from xmm2 (sum of vertical results) in eax
 	add r8d, eax
-	pextrw eax, xmm2, 7				; store seventh dword from xmm2 (sum of vertical results) in eax
+	pextrw eax, xmm2, 7				; store seventh word from xmm2 (sum of vertical results) in eax
 	add r8d, eax
-	pextrw eax, xmm3, 4				; store fifth dword from xmm3 (center of the square with mask 8) in eax
+	pextrw eax, xmm3, 4				; store fifth word from xmm3 (center of the square with mask 8) in eax
 	neg ax							; change sign
 	sub r8d, eax					; subtract (add negative number)
 	inc rcx							; increment, now it points second centre
 	mov r9b, r8b					; save contents of r8b in r9b
 	xor r8b, r8b					; set r8b 0
 	cmp r8, 0						; when r8 is equal to 0, then number is positive, negative otherwise
-	je positive2					; jump to positive2 when equal to 0
+	jge positive2					; jump to positive2 when equal to 0
 	mov r8b, r9b					; number is negative, return initial data
 	neg r8b							; negate, change sign
 	back2:
@@ -164,6 +164,7 @@ laplaceAsm proc
 	add rcx, 4						; add 4 to rcx, 1 to access next colour, 3 to access next column
 	xor rax, rax
 	xor r8, r8
+	xor r9, r9
 	mov al, byte ptr [rcx]			; move first element of the third row (third colour)
 	add rcx, r13
 	mov r8b, byte ptr [rcx]			; move second element of the third row (third colour)
@@ -172,11 +173,11 @@ laplaceAsm proc
 	add r8, rax
 	mov al, byte ptr [rcx]			; move third element of the third row (third colour)
 	add r8, rax
-	pextrw eax, xmm2, 2				; add third dword from xmm2 (sum of vertical results) to r8d
+	pextrw eax, xmm2, 2				; add third word from xmm2 (sum of vertical results) to r8d
 	add r8d, eax
-	pextrw eax, xmm2, 5				; add sixth dword from xmm2 (sum of vertical results) to r8d
+	pextrw eax, xmm2, 5				; add sixth word from xmm2 (sum of vertical results) to r8d
 	add r8d, eax
-	pextrw eax, xmm3, 5				; add fifth dword from xmm2 (sum of vertical results) to r8d
+	pextrw eax, xmm3, 5				; add fifth word from xmm2 (sum of vertical results) to r8d
 	neg ax							; change sign
 	sub r8d, eax					; subtract (add negative number)
 	sub rcx, 3						; subtract 3 from rcx, now it points third centre element
@@ -186,7 +187,7 @@ laplaceAsm proc
 	mov r9b, r8b					; save contents of r8b in r9b
 	xor r8b, r8b					; set r8b 0
 	cmp r8, 0						; when r8 is equal to 0, then number is positive, negative otherwise
-	je positive3					; jump to positive3 when equal to 0
+	jge positive3					; jump to positive3 when equal to 0
 	mov r8b, r9b					; number is negative, return initial data
 	neg r8b							; negate, change sign
 	back3:
@@ -200,12 +201,15 @@ laplaceAsm proc
 	jmp back0
 
 	positive1:
+	mov r8b, r9b
 	jmp back1
 
 	positive2:
+	mov r8b, r9b
 	jmp back2
 
 	positive3:
+	mov r8b, r9b
 	jmp back3
 
 	nextRow:
@@ -213,8 +217,6 @@ laplaceAsm proc
 	add rcx, 6						; add 6 (first and last row pixels, both 3 colours) to counter of all elements
 	xor rax, rax					; set rax to 0
 	mov eax, paddingSize			; move padding size to eax
-	mov r8, 3						; move 3 to r8
-	mul r8							; multiply padding size by 3 (3 colours)
 	add rcx, rax					; do not calculate padding and verge columns
 	jmp startL						; jump to startL
 
